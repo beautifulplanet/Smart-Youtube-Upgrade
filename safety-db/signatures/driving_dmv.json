@@ -1,0 +1,127 @@
+{
+  "category": "Driving Safety (DMV/NHTSA)",
+  "emoji": "🚗",
+  "description": "DMV rules, traffic laws, and NHTSA safety guidelines",
+  "sources": [
+    "NHTSA (National Highway Traffic Safety Administration)",
+    "State DMV Driver Handbooks",
+    "Federal Motor Carrier Safety Administration (FMCSA)"
+  ],
+  "danger_signatures": [
+    {
+      "id": "dmv_phone_driving",
+      "pattern": "text(ing)? (while|and) driv|phone while driv|facetime.*driv|snapchat.*driv|tiktok.*driv",
+      "severity": "critical",
+      "message": "Texting while driving increases crash risk by 23x. Illegal in most states.",
+      "law": "Distracted Driving Laws - varies by state"
+    },
+    {
+      "id": "dmv_drunk_driving",
+      "pattern": "drink(ing)? (and|while) driv|drunk driv|dui|dwi|buzzed driv|after (drinks|drinking|beers)",
+      "severity": "critical",
+      "message": "DUI/DWI is illegal. BAC limit is 0.08% (0.04% commercial, 0.00% under 21)",
+      "law": "All 50 states"
+    },
+    {
+      "id": "dmv_speeding",
+      "pattern": "going (\\d{3}|fast)|mph over|speed(ing)? (challenge|run)|top speed run|racing on (street|highway|public)",
+      "severity": "critical",
+      "message": "Speeding is a factor in 26% of all traffic fatalities. Speed limits are legally enforced.",
+      "law": "State traffic codes"
+    },
+    {
+      "id": "dmv_no_seatbelt",
+      "pattern": "no seatbelt|without (seatbelt|seat belt)|seatbelt (off|removed|bypass)|don't wear.*(seatbelt|belt)",
+      "severity": "high",
+      "message": "Seatbelts reduce death risk by 45%. Required by law in 49 states.",
+      "law": "State seatbelt laws"
+    },
+    {
+      "id": "dmv_child_seat",
+      "pattern": "child (without|no) (car seat|booster)|baby.*(front seat|no car seat)|kid.*(without|no).*(seatbelt|restraint)",
+      "severity": "critical",
+      "message": "Children must be in appropriate car seats/boosters. Laws vary by age/weight/height.",
+      "law": "State child restraint laws"
+    },
+    {
+      "id": "dmv_running_red",
+      "pattern": "run(ning)? (the |a )?(red light|stop sign)|blow.*(red|stop)|ignore.*(red|stop)",
+      "severity": "critical",
+      "message": "Running red lights causes 1,000+ deaths annually. Always stop at red lights and stop signs.",
+      "law": "Universal traffic law"
+    },
+    {
+      "id": "dmv_wrong_way",
+      "pattern": "wrong way|drive.*against traffic|going backwards.*(highway|freeway)|reverse.*(highway|freeway)",
+      "severity": "critical",
+      "message": "Wrong-way driving causes head-on collisions with high fatality rates",
+      "law": "All states"
+    },
+    {
+      "id": "dmv_road_rage",
+      "pattern": "road rage|brake check|cutting.*(off|someone)|aggressive driv|chase.*car|ram(ming)?.*car",
+      "severity": "high",
+      "message": "Aggressive driving and road rage are illegal and dangerous. Can result in assault charges.",
+      "law": "Reckless driving laws"
+    },
+    {
+      "id": "dmv_no_license",
+      "pattern": "without (a )?(license|permit)|no (driver'?s? )?license|unlicensed driv|suspended license.*driv",
+      "severity": "high",
+      "message": "Driving without a valid license is illegal and typically results in vehicle impoundment",
+      "law": "All states"
+    },
+    {
+      "id": "dmv_unsafe_passing",
+      "pattern": "pass(ing)? on (right|shoulder)|double yellow.*pass|blind (curve|hill).*pass|no passing zone",
+      "severity": "high",
+      "message": "Illegal passing causes head-on collisions. Only pass where permitted.",
+      "law": "State traffic codes"
+    },
+    {
+      "id": "dmv_tailgating",
+      "pattern": "tailgat(e|ing)|follow(ing)? too close|bump(er)? to bump(er)?|inches (behind|away)",
+      "severity": "medium",
+      "message": "Follow the 3-second rule minimum. Tailgating causes rear-end collisions.",
+      "law": "Following too closely laws"
+    },
+    {
+      "id": "dmv_drowsy_driving",
+      "pattern": "drowsy driv|tired (while|and) driv|sleep(y|ing).*driv|24 hours.*driv|no sleep.*driv",
+      "severity": "high",
+      "message": "Drowsy driving causes 100,000 crashes annually. Pull over if tired.",
+      "law": "FMCSA hours of service (commercial)"
+    },
+    {
+      "id": "dmv_illegal_mods",
+      "pattern": "remove.*(airbag|seatbelt|mirror)|tinted.*windshield|illegal (lights|tint)|no (headlights|brake lights)",
+      "severity": "high",
+      "message": "Vehicle safety equipment modifications may be illegal and void insurance",
+      "law": "State vehicle codes"
+    },
+    {
+      "id": "dmv_overloaded_vehicle",
+      "pattern": "overloaded (car|truck|trailer)|too many (people|passengers)|exceed.*capacity|riding in (bed|trunk)",
+      "severity": "high",
+      "message": "Overloading affects braking and stability. Passengers in truck beds is illegal in many states.",
+      "law": "State vehicle codes"
+    },
+    {
+      "id": "dmv_motorcycle_safety",
+      "pattern": "motorcycle without helmet|no helmet.*bike|wheelie.*(traffic|street)|lane split.*illegal",
+      "severity": "high",
+      "message": "Helmets reduce death risk by 37%. Required in most states. Stunts on public roads are illegal.",
+      "law": "State helmet laws"
+    }
+  ],
+  "safe_practices": [
+    "Always wear seatbelts - it's the law",
+    "Never drive impaired (alcohol, drugs, drowsy)",
+    "Put phones away while driving",
+    "Follow speed limits and adjust for conditions",
+    "Use proper child restraints",
+    "Maintain safe following distance (3+ seconds)",
+    "Check mirrors and blind spots before changing lanes",
+    "Yield to pedestrians in crosswalks"
+  ]
+}

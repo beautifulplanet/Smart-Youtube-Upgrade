@@ -1,0 +1,151 @@
+{
+  "category": "Physical Therapy & Exercise Safety",
+  "emoji": "🏥",
+  "description": "Physical therapy guidelines, exercise form, and rehabilitation safety",
+  "sources": [
+    "American Physical Therapy Association (APTA)",
+    "National Academy of Sports Medicine (NASM)",
+    "American College of Sports Medicine (ACSM)",
+    "Certified Strength and Conditioning Specialists (CSCS)"
+  ],
+  "danger_signatures": [
+    {
+      "id": "pt_spine_flexion_load",
+      "pattern": "round(ed|ing)? back.*(deadlift|squat|lift|pick up)|flex(ed|ion)? spine.*load|bent over.*heavy",
+      "severity": "critical",
+      "message": "Loaded spinal flexion dramatically increases disc herniation risk. Keep neutral spine under load.",
+      "source": "McGill Spine Research"
+    },
+    {
+      "id": "pt_knee_valgus",
+      "pattern": "knee(s)? (cave|caving|collapse|collapsing)|knock.?knee.*(squat|lunge)|valgus.*(squat|jump)",
+      "severity": "high",
+      "message": "Knee valgus (inward collapse) increases ACL tear risk by 4x. Keep knees tracking over toes.",
+      "source": "ACSM"
+    },
+    {
+      "id": "pt_behind_neck",
+      "pattern": "behind (the )?neck (press|pulldown|pull.?down)|behind head.*(press|pull)",
+      "severity": "high",
+      "message": "Behind-neck movements stress shoulder capsule and cervical spine. Use front variations instead.",
+      "source": "APTA"
+    },
+    {
+      "id": "pt_bounce_stretch",
+      "pattern": "bounc(e|ing) stretch|ballistic stretch(ing)?|force.*(stretch|flexibility)|partner.*(push|force).*stretch",
+      "severity": "medium",
+      "message": "Ballistic/bouncing stretches can cause muscle tears. Use slow, controlled static stretches.",
+      "source": "ACSM Stretching Guidelines"
+    },
+    {
+      "id": "pt_full_situp",
+      "pattern": "full sit.?up|anchored sit.?up|straight leg sit.?up|hands behind (head|neck).*sit.?up",
+      "severity": "medium",
+      "message": "Full sit-ups stress lumbar discs and hip flexors. Crunches or dead bugs are safer alternatives.",
+      "source": "McGill"
+    },
+    {
+      "id": "pt_no_warmup",
+      "pattern": "skip(ping)? warm.?up|no warm.?up|cold.*(muscle|start)|straight into heavy",
+      "severity": "medium",
+      "message": "Training without warmup increases injury risk 2-5x. Always warm up 5-10 minutes.",
+      "source": "ACSM"
+    },
+    {
+      "id": "pt_ego_lifting",
+      "pattern": "max(ing)? out|1.?rep max without|heaviest.*(ever|possible)|ego lift|too heavy.*form",
+      "severity": "high",
+      "message": "Lifting too heavy with poor form causes acute injuries. Progress gradually with proper form.",
+      "source": "NSCA"
+    },
+    {
+      "id": "pt_neck_rotation_load",
+      "pattern": "neck (circle|rotation).*weight|weighted neck.*(rotation|circle)|twist(ing)? neck.*load",
+      "severity": "critical",
+      "message": "Loaded neck rotation can damage cervical vertebrae and discs. Avoid weighted neck circles.",
+      "source": "APTA"
+    },
+    {
+      "id": "pt_upright_row",
+      "pattern": "upright row|pull.*(chin|face).*barbell|high pull.*internal rotation",
+      "severity": "medium",
+      "message": "Upright rows cause shoulder impingement. Use face pulls or lateral raises instead.",
+      "source": "NASM"
+    },
+    {
+      "id": "pt_hyperextension",
+      "pattern": "hyper.?extend.*(back|knee|elbow)|lock(ing)? out.*(knee|elbow)|over.?arch.*(back|spine)",
+      "severity": "high",
+      "message": "Hyperextension stresses joints and ligaments. Maintain slight bend at end range.",
+      "source": "APTA"
+    },
+    {
+      "id": "pt_deep_squat_unprepared",
+      "pattern": "ass to grass.*beginner|atg squat.*no mobility|deep squat.*heels (lift|up)",
+      "severity": "medium",
+      "message": "Deep squats require adequate ankle/hip mobility. Build mobility before depth.",
+      "source": "NASM"
+    },
+    {
+      "id": "pt_kipping",
+      "pattern": "kipping (pull.?up|muscle.?up)|swing(ing)?.*(pull.?up|muscle)|momentum.*(pull|chin)",
+      "severity": "medium",
+      "message": "Kipping movements stress shoulders and can cause labrum tears. Master strict form first.",
+      "source": "APTA"
+    },
+    {
+      "id": "pt_post_surgery",
+      "pattern": "after surgery.*(exercise|lift|workout)|post.?op.*(exercise|training)|(acl|shoulder|back) surgery.*return",
+      "severity": "high",
+      "message": "Post-surgical exercise requires medical clearance and proper progression. Consult your PT.",
+      "source": "APTA"
+    },
+    {
+      "id": "pt_pain_exercise",
+      "pattern": "exercise through (the )?pain|no pain no gain|push through.*(injury|pain)|ignore.*pain",
+      "severity": "high",
+      "message": "Pain is a warning signal. 'No pain no gain' causes injuries. Discomfort ≠ sharp pain.",
+      "source": "APTA"
+    },
+    {
+      "id": "pt_breath_holding",
+      "pattern": "hold(ing)? breath.*(lift|exercise|squat)|don't breathe|valsalva.*(heavy|max|beginner)",
+      "severity": "medium",
+      "message": "Breath holding raises blood pressure dangerously. Use controlled breathing pattern.",
+      "source": "ACSM"
+    },
+    {
+      "id": "pt_unstable_surface",
+      "pattern": "squat on (bosu|ball)|heavy.*(bosu|unstable)|deadlift.*(unstable|balance)",
+      "severity": "high",
+      "message": "Heavy lifting on unstable surfaces increases injury risk with minimal benefit.",
+      "source": "NSCA"
+    },
+    {
+      "id": "pt_improper_spotter",
+      "pattern": "no spot(ter)?.*heavy|alone.*(bench|squat)|max.*(without|no).*(spot|safety)",
+      "severity": "high",
+      "message": "Heavy bench press and squats require spotters or safety bars. Gym deaths occur from failed lifts.",
+      "source": "NSCA"
+    },
+    {
+      "id": "pt_excessive_volume",
+      "pattern": "every day.*(same muscle|train)|no rest day|train (7|seven) days|overtraining",
+      "severity": "medium",
+      "message": "Muscles need 48-72 hours recovery. Overtraining leads to injury and regression.",
+      "source": "ACSM"
+    }
+  ],
+  "safe_practices": [
+    "Warm up 5-10 minutes before exercise",
+    "Maintain neutral spine under load",
+    "Progress weight gradually (5-10% per week max)",
+    "Use full range of motion with control",
+    "Rest 48-72 hours between training same muscle",
+    "Stop if you feel sharp pain",
+    "Use spotters for heavy compound lifts",
+    "Get medical clearance after injuries/surgery",
+    "Focus on form before adding weight",
+    "Include mobility work in your routine"
+  ]
+}

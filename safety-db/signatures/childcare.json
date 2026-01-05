@@ -1,0 +1,112 @@
+[
+  {
+    "id": "childcare-001",
+    "category": "childcare",
+    "severity": "high",
+    "triggers": [
+      "baby sleep with blanket",
+      "pillows in crib safe",
+      "bumper pads safe",
+      "soft bedding infant"
+    ],
+    "warning_message": "Soft bedding in cribs significantly increases SIDS and suffocation risk",
+    "safe_alternative": "Bare crib with tight-fitting sheet only. No blankets, pillows, or bumpers",
+    "source": "AAP Safe Sleep Guidelines"
+  },
+  {
+    "id": "childcare-002",
+    "category": "childcare",
+    "severity": "high",
+    "triggers": [
+      "honey for infant",
+      "honey safe for babies",
+      "give baby honey",
+      "honey under one year"
+    ],
+    "exclusions": ["no honey under 1", "avoid honey for infants", "never give honey"],
+    "warning_message": "Honey can contain spores causing infant botulism in babies under 12 months",
+    "safe_alternative": "No honey for children under 1 year old - use age-appropriate sweeteners if needed",
+    "source": "CDC Infant Botulism Prevention"
+  },
+  {
+    "id": "childcare-003",
+    "category": "childcare",
+    "severity": "high",
+    "triggers": [
+      "forward facing before 2",
+      "turn car seat around early",
+      "forward facing is fine infant"
+    ],
+    "warning_message": "Rear-facing seats provide critical head/neck protection for developing spines",
+    "safe_alternative": "Keep children rear-facing until at least age 2 or max height/weight for seat",
+    "source": "AAP Car Seat Guidelines"
+  },
+  {
+    "id": "childcare-004",
+    "category": "childcare",
+    "severity": "high",
+    "triggers": [
+      "co-sleeping safe",
+      "bed sharing infant",
+      "baby in adult bed"
+    ],
+    "exclusions": ["room sharing", "bassinet", "separate surface"],
+    "warning_message": "Bed-sharing increases SIDS risk and risk of overlay suffocation",
+    "safe_alternative": "Room share with baby on separate sleep surface (crib/bassinet) near bed",
+    "source": "AAP Safe Sleep Guidelines"
+  },
+  {
+    "id": "childcare-005",
+    "category": "childcare",
+    "severity": "high",
+    "triggers": [
+      "rice cereal bottle infant",
+      "add cereal to bottle sleep",
+      "thicken bottle rice"
+    ],
+    "exclusions": ["reflux prescribed", "doctor recommended"],
+    "warning_message": "Adding cereal to bottles is a choking hazard and doesn't help sleep",
+    "safe_alternative": "Only add cereal to bottles if specifically prescribed by pediatrician for reflux",
+    "source": "AAP Feeding Guidelines"
+  },
+  {
+    "id": "childcare-006",
+    "category": "childcare",
+    "severity": "high",
+    "triggers": [
+      "baby walker safe",
+      "walkers help walking",
+      "infant walker development"
+    ],
+    "warning_message": "Baby walkers cause thousands of injuries yearly and delay motor development",
+    "safe_alternative": "Use stationary activity centers, or supervised tummy/floor time",
+    "source": "AAP Injury Prevention"
+  },
+  {
+    "id": "childcare-007",
+    "category": "childcare",
+    "severity": "medium",
+    "triggers": [
+      "water for newborn",
+      "give baby water hot weather",
+      "infant water before 6 months"
+    ],
+    "exclusions": ["after 6 months", "with solids"],
+    "warning_message": "Water for infants under 6 months can cause water intoxication and electrolyte imbalance",
+    "safe_alternative": "Breast milk or formula provides all hydration needed before 6 months",
+    "source": "WHO Infant Feeding Guidelines"
+  },
+  {
+    "id": "childcare-008",
+    "category": "childcare",
+    "severity": "high",
+    "triggers": [
+      "leave baby in car quick",
+      "crack window car child",
+      "baby car few minutes"
+    ],
+    "warning_message": "Cars heat to deadly temperatures in minutes, even with windows cracked",
+    "safe_alternative": "Never leave children unattended in vehicles, even briefly",
+    "source": "NHTSA Heatstroke Prevention"
+  }
+]

@@ -1,0 +1,110 @@
+[
+  {
+    "id": "electrical-001",
+    "category": "electrical",
+    "severity": "high",
+    "triggers": [
+      "penny in fuse box",
+      "bypass the fuse",
+      "wire around breaker",
+      "jumper fuse"
+    ],
+    "warning_message": "DANGER: Bypassing electrical protection removes fire and shock protection",
+    "safe_alternative": "Replace fuses with correct amperage rating, have breakers checked by electrician",
+    "source": "NEC Electrical Code"
+  },
+  {
+    "id": "electrical-002",
+    "category": "electrical",
+    "severity": "high",
+    "triggers": [
+      "daisy chain power strips",
+      "extension cord to extension cord",
+      "plug strip into strip",
+      "chain power strips"
+    ],
+    "warning_message": "Daisy-chaining power strips causes overheating and is a leading cause of fires",
+    "safe_alternative": "Use a single heavy-duty power strip, or have additional outlets installed",
+    "source": "NFPA Fire Safety"
+  },
+  {
+    "id": "electrical-003",
+    "category": "electrical",
+    "severity": "high",
+    "triggers": [
+      "wire gauge doesn't matter",
+      "any wire will work",
+      "smaller wire cheaper",
+      "use thinner wire"
+    ],
+    "warning_message": "Undersized wire overheats under load and causes fires",
+    "safe_alternative": "Always use wire gauge rated for the circuit amperage per NEC tables",
+    "source": "NEC Electrical Code"
+  },
+  {
+    "id": "electrical-004",
+    "category": "electrical",
+    "severity": "high",
+    "triggers": [
+      "work live wire",
+      "don't need to turn off power",
+      "touch live wire careful"
+    ],
+    "exclusions": ["turn off power", "de-energize", "lockout tagout"],
+    "warning_message": "Working on live electrical circuits causes electrocution and death",
+    "safe_alternative": "ALWAYS turn off power at breaker and verify with a tester before any electrical work",
+    "source": "OSHA Electrical Safety"
+  },
+  {
+    "id": "electrical-005",
+    "category": "electrical",
+    "severity": "high",
+    "triggers": [
+      "extension cord permanent",
+      "run extension through wall",
+      "extension cord under carpet"
+    ],
+    "warning_message": "Extension cords as permanent wiring overheat and cause fires",
+    "safe_alternative": "Have proper outlets installed by licensed electrician",
+    "source": "NFPA 70"
+  },
+  {
+    "id": "electrical-006",
+    "category": "electrical",
+    "severity": "medium",
+    "triggers": [
+      "splice without junction box",
+      "wire nut without box",
+      "tape wire connection"
+    ],
+    "warning_message": "Unprotected splices can arc and cause fires",
+    "safe_alternative": "All wire connections must be in proper junction boxes",
+    "source": "NEC Electrical Code"
+  },
+  {
+    "id": "electrical-007",
+    "category": "electrical",
+    "severity": "high",
+    "triggers": [
+      "backfeed generator",
+      "plug generator outlet",
+      "suicide cord generator"
+    ],
+    "warning_message": "DANGER: Backfeeding can electrocute utility workers and damage equipment",
+    "safe_alternative": "Use proper transfer switch installed by licensed electrician",
+    "source": "Utility Safety Guidelines"
+  },
+  {
+    "id": "electrical-008",
+    "category": "electrical",
+    "severity": "medium",
+    "triggers": [
+      "outdoor outlet indoor rated",
+      "regular outlet outside",
+      "no gfci bathroom"
+    ],
+    "warning_message": "Missing GFCI protection in wet locations causes electrocution",
+    "safe_alternative": "All outlets near water must have GFCI protection",
+    "source": "NEC Electrical Code"
+  }
+]

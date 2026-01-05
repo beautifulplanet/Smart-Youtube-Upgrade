@@ -1,0 +1,142 @@
+[
+  {
+    "id": "cooking-001",
+    "category": "cooking",
+    "severity": "high",
+    "triggers": [
+      "add water to hot oil",
+      "pour water in grease",
+      "water into frying oil",
+      "water on grease fire",
+      "add water to the hot",
+      "just add water",
+      "water to hot"
+    ],
+    "exclusions": ["never add water", "don't add water", "don't use water"],
+    "warning_message": "DANGER: Water in hot oil causes explosive splattering causing severe burns",
+    "safe_alternative": "Smother oil fires with a metal lid or baking soda. Never use water on grease fires",
+    "source": "NFPA Fire Safety"
+  },
+  {
+    "id": "cooking-002",
+    "category": "cooking",
+    "severity": "high",
+    "triggers": [
+      "raw chicken safe to taste",
+      "pink chicken is fine",
+      "undercooked poultry ok",
+      "chicken medium rare"
+    ],
+    "warning_message": "Undercooked chicken contains Salmonella and Campylobacter causing serious illness",
+    "safe_alternative": "Cook all chicken to internal temperature of 165°F (74°C)",
+    "source": "USDA Food Safety"
+  },
+  {
+    "id": "cooking-003",
+    "category": "cooking",
+    "severity": "medium",
+    "triggers": [
+      "leave rice out overnight",
+      "room temperature rice safe",
+      "rice doesn't need refrigeration",
+      "rice counter overnight"
+    ],
+    "warning_message": "Cooked rice at room temperature grows Bacillus cereus bacteria causing food poisoning",
+    "safe_alternative": "Refrigerate cooked rice within 1 hour, use within 3-4 days",
+    "source": "FDA Food Safety Guidelines"
+  },
+  {
+    "id": "cooking-004",
+    "category": "cooking",
+    "severity": "high",
+    "triggers": [
+      "thaw meat on counter",
+      "defrost at room temperature",
+      "leave meat out to thaw",
+      "thaw overnight counter"
+    ],
+    "warning_message": "Room temperature thawing allows bacteria to multiply to dangerous levels",
+    "safe_alternative": "Thaw in refrigerator, under cold running water, or in microwave",
+    "source": "USDA Food Safety"
+  },
+  {
+    "id": "cooking-005",
+    "category": "cooking",
+    "severity": "medium",
+    "triggers": [
+      "wash raw chicken",
+      "rinse chicken before cooking",
+      "clean chicken with water"
+    ],
+    "warning_message": "Washing raw chicken spreads bacteria up to 3 feet around your sink",
+    "safe_alternative": "Don't wash raw chicken - cooking to proper temperature kills bacteria",
+    "source": "USDA Food Safety"
+  },
+  {
+    "id": "cooking-006",
+    "category": "cooking",
+    "severity": "high",
+    "triggers": [
+      "home canning without pressure",
+      "water bath low acid foods",
+      "can vegetables water bath"
+    ],
+    "exclusions": ["pressure canner", "pressure canning"],
+    "warning_message": "Low-acid foods (vegetables, meat) require pressure canning to prevent botulism",
+    "safe_alternative": "Use tested pressure canning recipes from USDA or extension services",
+    "source": "USDA Complete Guide to Home Canning"
+  },
+  {
+    "id": "cooking-007",
+    "category": "cooking",
+    "severity": "medium",
+    "triggers": [
+      "wooden cutting board meat",
+      "same board raw and cooked",
+      "one cutting board everything"
+    ],
+    "warning_message": "Cross-contamination from raw meat causes foodborne illness",
+    "safe_alternative": "Use separate cutting boards for raw meat and ready-to-eat foods",
+    "source": "FDA Food Code"
+  },
+  {
+    "id": "cooking-008",
+    "category": "cooking",
+    "severity": "high",
+    "triggers": [
+      "stuff turkey night before",
+      "pre-stuff turkey",
+      "stuffing in bird overnight"
+    ],
+    "warning_message": "Pre-stuffing poultry creates ideal conditions for bacterial growth",
+    "safe_alternative": "Stuff turkey just before cooking, or cook stuffing separately",
+    "source": "USDA Poultry Safety"
+  },
+  {
+    "id": "cooking-009",
+    "category": "cooking",
+    "severity": "medium",
+    "triggers": [
+      "cooling soup in fridge hot",
+      "put hot food in refrigerator"
+    ],
+    "exclusions": ["cool first", "ice bath"],
+    "is_regex": false,
+    "warning_message": "Large amounts of hot food raise fridge temperature, affecting all stored food",
+    "safe_alternative": "Cool hot foods to 70°F within 2 hours before refrigerating, use ice bath for large pots",
+    "source": "FDA Food Code"
+  },
+  {
+    "id": "cooking-010",
+    "category": "cooking",
+    "severity": "high",
+    "triggers": [
+      "flour safe raw",
+      "raw cookie dough safe",
+      "eating raw batter fine"
+    ],
+    "warning_message": "Raw flour can contain E. coli - not safe to eat uncooked",
+    "safe_alternative": "Heat-treat flour (350°F for 5 min) for edible cookie dough recipes",
+    "source": "CDC Food Safety"
+  }
+]

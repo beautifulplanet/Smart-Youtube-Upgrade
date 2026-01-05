@@ -1,0 +1,144 @@
+[
+  {
+    "id": "fitness-001",
+    "category": "fitness",
+    "severity": "high",
+    "triggers": [
+      "lock your knees",
+      "fully extend and lock",
+      "keep knees locked",
+      "knees completely straight"
+    ],
+    "exclusions": ["don't lock", "never lock", "avoid locking", "slight bend"],
+    "warning_message": "Locking knees during exercises can cause hyperextension injuries and joint damage",
+    "safe_alternative": "Keep a slight bend in your knees to protect the joint",
+    "source": "ACSM Guidelines"
+  },
+  {
+    "id": "fitness-002",
+    "category": "fitness",
+    "severity": "high",
+    "triggers": [
+      "bounce at the bottom",
+      "use momentum to bounce",
+      "bouncing helps",
+      "bounce off your chest",
+      "bouncing at the bottom"
+    ],
+    "exclusions": ["controlled", "pause at bottom", "don't bounce"],
+    "warning_message": "Bouncing during lifts can cause muscle tears, joint injuries, and loss of control",
+    "safe_alternative": "Use controlled movements with a brief pause at the bottom of each rep",
+    "source": "NSCA Strength Training Guidelines"
+  },
+  {
+    "id": "fitness-003",
+    "category": "fitness",
+    "severity": "high",
+    "triggers": [
+      "arch your back as much as possible",
+      "extreme back arch",
+      "hyperextend your spine",
+      "maximum arch"
+    ],
+    "exclusions": ["slight arch", "natural arch", "neutral spine", "natural curve"],
+    "warning_message": "Excessive back arching during exercises can cause spinal disc injuries",
+    "safe_alternative": "Maintain a neutral spine with natural curvature throughout the movement",
+    "source": "Physical Therapy Guidelines"
+  },
+  {
+    "id": "fitness-004",
+    "category": "fitness",
+    "severity": "medium",
+    "triggers": [
+      "no warm up needed",
+      "skip the warmup",
+      "warming up is a waste",
+      "warmup unnecessary"
+    ],
+    "warning_message": "Skipping warmup significantly increases risk of muscle strains and joint injuries",
+    "safe_alternative": "Always warm up for 5-10 minutes before intense exercise",
+    "source": "ACSM Guidelines"
+  },
+  {
+    "id": "fitness-005",
+    "category": "fitness",
+    "severity": "high",
+    "triggers": [
+      "behind the neck press",
+      "behind neck pulldown",
+      "pull behind your head",
+      "behind head lat pulldown"
+    ],
+    "warning_message": "Behind-the-neck movements put extreme stress on shoulder joints and rotator cuffs",
+    "safe_alternative": "Perform presses to the front and pulldowns to the chest",
+    "source": "NSCA Position Statement"
+  },
+  {
+    "id": "fitness-006",
+    "category": "fitness",
+    "severity": "high",
+    "triggers": [
+      "knees past toes is dangerous",
+      "knees should never pass toes",
+      "knees over toes bad"
+    ],
+    "warning_message": "This is outdated advice - preventing forward knee travel forces hip and back compensation",
+    "safe_alternative": "Allow natural knee tracking over toes for proper squat mechanics",
+    "source": "Current Sports Medicine Research"
+  },
+  {
+    "id": "fitness-007",
+    "category": "fitness",
+    "severity": "medium",
+    "triggers": [
+      "work through the pain",
+      "pain means progress",
+      "no pain no gain",
+      "ignore the pain"
+    ],
+    "exclusions": ["muscle burn", "fatigue", "discomfort"],
+    "warning_message": "Sharp or joint pain during exercise indicates potential injury - not normal muscle fatigue",
+    "safe_alternative": "Stop exercises that cause sharp pain and consult a professional",
+    "source": "Sports Medicine Guidelines"
+  },
+  {
+    "id": "fitness-008",
+    "category": "fitness",
+    "severity": "high",
+    "triggers": [
+      "round your back for deadlift",
+      "cat back deadlift",
+      "rounded spine lifting"
+    ],
+    "warning_message": "Rounding the spine under load dramatically increases disc herniation risk",
+    "safe_alternative": "Maintain a neutral spine with engaged core throughout the lift",
+    "source": "Spine Biomechanics Research"
+  },
+  {
+    "id": "fitness-009",
+    "category": "fitness",
+    "severity": "medium",
+    "triggers": [
+      "stretch before workout",
+      "static stretch cold muscles",
+      "hold stretch before exercise"
+    ],
+    "exclusions": ["dynamic", "after workout", "warm up first"],
+    "warning_message": "Static stretching cold muscles can reduce power output and may increase injury risk",
+    "safe_alternative": "Do dynamic warmup before exercise, save static stretching for after",
+    "source": "Journal of Strength and Conditioning Research"
+  },
+  {
+    "id": "fitness-010",
+    "category": "fitness",
+    "severity": "high",
+    "triggers": [
+      "kipping pullup beginner",
+      "kip before strict",
+      "learn kipping first"
+    ],
+    "warning_message": "Kipping without strict pullup strength causes shoulder injuries",
+    "safe_alternative": "Master strict pullups before attempting kipping variations",
+    "source": "CrossFit Safety Guidelines"
+  }
+]

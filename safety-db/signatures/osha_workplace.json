@@ -1,0 +1,127 @@
+{
+  "category": "OSHA Workplace Safety",
+  "emoji": "🏭",
+  "description": "OSHA regulations and workplace safety standards",
+  "sources": [
+    "OSHA 29 CFR 1910 - General Industry Standards",
+    "OSHA 29 CFR 1926 - Construction Standards",
+    "NIOSH Safety Guidelines"
+  ],
+  "danger_signatures": [
+    {
+      "id": "osha_fall_protection",
+      "pattern": "no (harness|fall protection|safety line|guardrail)|working at height without|ladder without",
+      "severity": "critical",
+      "message": "OSHA requires fall protection at heights of 6+ feet in construction, 4+ feet in general industry",
+      "osha_standard": "29 CFR 1926.501"
+    },
+    {
+      "id": "osha_no_ppe",
+      "pattern": "no (safety glasses|goggles|hard hat|helmet|gloves|respirator|ear protection)|without (ppe|protective equipment)",
+      "severity": "high",
+      "message": "OSHA requires appropriate PPE for hazardous work conditions",
+      "osha_standard": "29 CFR 1910.132"
+    },
+    {
+      "id": "osha_confined_space",
+      "pattern": "enter (tank|silo|pit|vault|sewer|manhole)|confined space without|no air (monitor|test)",
+      "severity": "critical",
+      "message": "Confined spaces require air testing, ventilation, and rescue plans per OSHA",
+      "osha_standard": "29 CFR 1910.146"
+    },
+    {
+      "id": "osha_lockout_tagout",
+      "pattern": "without (lockout|tagout|loto)|machine (running|on) while|bypass.*(safety|interlock)",
+      "severity": "critical",
+      "message": "OSHA requires lockout/tagout procedures before servicing equipment",
+      "osha_standard": "29 CFR 1910.147"
+    },
+    {
+      "id": "osha_electrical_work",
+      "pattern": "live (wire|electrical)|energized (panel|circuit)|working on.*(hot|live)|no arc flash",
+      "severity": "critical",
+      "message": "OSHA prohibits work on energized electrical systems without proper safeguards",
+      "osha_standard": "29 CFR 1910.333"
+    },
+    {
+      "id": "osha_scaffolding",
+      "pattern": "scaffold without (guardrail|planking)|makeshift scaffold|unstable scaffold",
+      "severity": "critical",
+      "message": "Scaffolds must be properly constructed with guardrails and stable base",
+      "osha_standard": "29 CFR 1926.451"
+    },
+    {
+      "id": "osha_trenching",
+      "pattern": "trench without (shoring|sloping|box)|unprotected trench|cave.?in",
+      "severity": "critical",
+      "message": "Trenches 5+ feet deep require protective systems against cave-ins",
+      "osha_standard": "29 CFR 1926.652"
+    },
+    {
+      "id": "osha_forklift",
+      "pattern": "forklift (tip|overturn)|riding on forks|no forklift (training|certification)|overloaded forklift",
+      "severity": "high",
+      "message": "Forklift operators must be trained and certified; improper use causes deaths",
+      "osha_standard": "29 CFR 1910.178"
+    },
+    {
+      "id": "osha_chemical_handling",
+      "pattern": "no (sds|msds|safety data)|mixing chemical|unlabeled (container|chemical)|no ventilation.*chemical",
+      "severity": "high",
+      "message": "Hazardous chemicals require SDS sheets, proper labeling, and ventilation",
+      "osha_standard": "29 CFR 1910.1200"
+    },
+    {
+      "id": "osha_hearing",
+      "pattern": "loud (noise|machinery) without|no (hearing protection|ear plug|ear muff)|exceed.*(decibel|db)",
+      "severity": "medium",
+      "message": "Hearing protection required when noise exceeds 85 decibels (8-hour TWA)",
+      "osha_standard": "29 CFR 1910.95"
+    },
+    {
+      "id": "osha_respiratory",
+      "pattern": "dust without (mask|respirator)|fumes without|spray paint without|asbestos|silica dust",
+      "severity": "high",
+      "message": "Respiratory protection required for airborne hazards",
+      "osha_standard": "29 CFR 1910.134"
+    },
+    {
+      "id": "osha_machine_guarding",
+      "pattern": "remove.*(guard|shield)|unguarded (blade|belt|gear|pulley)|bypass.*(guard|safety)",
+      "severity": "critical",
+      "message": "Machine guards must never be removed; they prevent amputations and deaths",
+      "osha_standard": "29 CFR 1910.212"
+    },
+    {
+      "id": "osha_welding",
+      "pattern": "welding without (helmet|shield|ventilation)|weld near (flammable|combustible)|no fire watch",
+      "severity": "high",
+      "message": "Welding requires proper PPE, ventilation, and fire prevention measures",
+      "osha_standard": "29 CFR 1910.252"
+    },
+    {
+      "id": "osha_crane_rigging",
+      "pattern": "overload.*(crane|hoist)|stand under load|improper (rigging|sling)|crane tip",
+      "severity": "critical",
+      "message": "Never stand under suspended loads; use proper rigging techniques",
+      "osha_standard": "29 CFR 1926.1400"
+    },
+    {
+      "id": "osha_ladder_safety",
+      "pattern": "top (step|rung) of ladder|ladder (angle|placement)|overreach.*ladder|damaged ladder",
+      "severity": "high",
+      "message": "Ladders must be at proper angle (4:1), never use top step, maintain 3 points of contact",
+      "osha_standard": "29 CFR 1910.23"
+    }
+  ],
+  "safe_practices": [
+    "Always conduct Job Safety Analysis (JSA) before work",
+    "Use proper PPE for each task",
+    "Follow lockout/tagout procedures",
+    "Report unsafe conditions immediately",
+    "Never bypass safety devices",
+    "Maintain 3 points of contact on ladders",
+    "Test air quality in confined spaces",
+    "Keep work areas clean and organized"
+  ]
+}

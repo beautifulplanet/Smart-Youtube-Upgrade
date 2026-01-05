@@ -1,0 +1,86 @@
+{
+  "fitness": {
+    "name": "Fitness",
+    "emoji": "🏋️",
+    "description": "Exercise, workout form, and physical training safety",
+    "keywords": ["exercise", "workout", "gym", "lift", "squat", "deadlift", "bench"]
+  },
+  "diy": {
+    "name": "DIY",
+    "emoji": "🔧",
+    "description": "Do-it-yourself projects, construction, and home improvement",
+    "keywords": ["build", "make", "diy", "craft", "construct", "weld", "tool"]
+  },
+  "cooking": {
+    "name": "Cooking",
+    "emoji": "🍳",
+    "description": "Food preparation, kitchen safety, and food handling",
+    "keywords": ["cook", "recipe", "food", "kitchen", "bake", "fry", "grill"]
+  },
+  "electrical": {
+    "name": "Electrical",
+    "emoji": "⚡",
+    "description": "Electrical work, wiring, and fire prevention",
+    "keywords": ["wire", "electrical", "power", "voltage", "circuit", "outlet"]
+  },
+  "medical": {
+    "name": "Medical",
+    "emoji": "💊",
+    "description": "Health advice, treatments, and medical claims",
+    "keywords": ["health", "cure", "treatment", "medicine", "doctor", "heal"]
+  },
+  "chemical": {
+    "name": "Chemical",
+    "emoji": "🧪",
+    "description": "Chemical handling, mixing, and toxic substance safety",
+    "keywords": ["chemical", "mix", "solution", "acid", "bleach", "clean"]
+  },
+  "automotive": {
+    "name": "Automotive",
+    "emoji": "🚗",
+    "description": "Vehicle repair, maintenance, and road safety",
+    "keywords": ["car", "vehicle", "engine", "brake", "repair", "mechanic"]
+  },
+  "childcare": {
+    "name": "Childcare",
+    "emoji": "👶",
+    "description": "Child safety, parenting, and infant care",
+    "keywords": ["baby", "child", "infant", "kid", "parent", "toddler"]
+  },
+  "outdoor": {
+    "name": "Outdoor",
+    "emoji": "🏕️",
+    "description": "Camping, hiking, survival, and outdoor activities",
+    "keywords": ["camp", "hike", "outdoor", "survival", "nature", "wilderness"]
+  },
+  "financial": {
+    "name": "Financial",
+    "emoji": "💰",
+    "description": "Investment advice, scams, and financial safety",
+    "keywords": ["invest", "money", "crypto", "stock", "trading", "profit"]
+  },
+  "osha_workplace": {
+    "name": "OSHA Workplace",
+    "emoji": "🏭",
+    "description": "OSHA regulations and workplace safety standards",
+    "keywords": ["osha", "workplace", "construction", "forklift", "scaffold", "ppe", "ladder", "trench", "lockout"]
+  },
+  "driving_dmv": {
+    "name": "Driving Safety",
+    "emoji": "🚗",
+    "description": "DMV rules, traffic laws, and NHTSA safety guidelines",
+    "keywords": ["driving", "dmv", "traffic", "speeding", "seatbelt", "drunk", "dui", "texting", "license"]
+  },
+  "physical_therapy": {
+    "name": "Physical Therapy",
+    "emoji": "🏥",
+    "description": "Physical therapy, exercise form, and rehabilitation safety",
+    "keywords": ["pt", "physical therapy", "form", "spine", "injury", "rehab", "stretch", "posture"]
+  },
+  "ai_content": {
+    "name": "AI Content",
+    "emoji": "🤖",
+    "description": "AI-generated, deepfake, or synthetic media detection",
+    "keywords": ["ai", "deepfake", "generated", "synthetic", "fake", "midjourney", "dall-e", "chatgpt", "sora"]
+  }
+}

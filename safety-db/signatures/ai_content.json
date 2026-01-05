@@ -1,0 +1,77 @@
+{
+  "category": "AI Generated Content",
+  "emoji": "🤖",
+  "description": "Detection of AI-generated, deepfake, or synthetic media content",
+  "sources": [
+    "FTC AI Disclosure Guidelines",
+    "EU AI Act Requirements",
+    "Platform AI Labeling Policies"
+  ],
+  "danger_signatures": [
+    {
+      "id": "ai_generated_video",
+      "pattern": "ai (generated|made|created)|made (with|by|using) ai|generated (with|by|using) ai",
+      "severity": "info",
+      "message": "This video may contain AI-generated content"
+    },
+    {
+      "id": "ai_deepfake",
+      "pattern": "deepfake|deep fake|face swap|face.?swapped",
+      "severity": "high",
+      "message": "This video may contain deepfake technology"
+    },
+    {
+      "id": "ai_voice_clone",
+      "pattern": "voice clone|cloned voice|ai voice|synthetic voice|voice ai",
+      "severity": "medium",
+      "message": "This video may contain AI-cloned voices"
+    },
+    {
+      "id": "ai_image_gen",
+      "pattern": "midjourney|dall.?e|stable diffusion|ai (art|image|picture)|generated (image|art)",
+      "severity": "info",
+      "message": "This video may contain AI-generated images"
+    },
+    {
+      "id": "ai_chatgpt",
+      "pattern": "chatgpt|gpt.?4|claude|gemini|copilot wrote|ai wrote",
+      "severity": "info",
+      "message": "Content may be AI-written"
+    },
+    {
+      "id": "ai_sora",
+      "pattern": "sora|runway|pika|gen.?2|ai video",
+      "severity": "medium",
+      "message": "This video may be AI-generated using video AI tools"
+    },
+    {
+      "id": "ai_not_real",
+      "pattern": "not real|fake (person|face|video)|doesn'?t exist|this person (doesn'?t|does not) exist",
+      "severity": "high",
+      "message": "Content explicitly labeled as not real/synthetic"
+    },
+    {
+      "id": "ai_avatar",
+      "pattern": "ai avatar|digital avatar|virtual (human|avatar|presenter)|synthesia|heygen",
+      "severity": "medium",
+      "message": "This video uses AI avatars/virtual presenters"
+    }
+  ],
+  "comment_patterns": [
+    {
+      "pattern": "this is (ai|fake|deepfake|generated)",
+      "severity": "high",
+      "message": "Community flagging AI content"
+    },
+    {
+      "pattern": "(clearly |obviously )?(ai|fake|cgi|generated)",
+      "severity": "medium", 
+      "message": "Community suspects AI content"
+    },
+    {
+      "pattern": "not real|fake video|manipulated",
+      "severity": "medium",
+      "message": "Community questions authenticity"
+    }
+  ]
+}

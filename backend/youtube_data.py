@@ -1,0 +1,263 @@
+"""
+YouTube Data Fetcher
+Fetches video metadata, comments, and other data using YouTube Data API
+"""
+
+import re
+import httpx
+from typing import Optional
+from dataclasses import dataclass
+
+
+@dataclass
+class VideoMetadata:
+    title: str
+    description: str
+    channel: str
+    tags: list[str]
+    category: str
+
+
+@dataclass 
+class Comment:
+    text: str
+    likes: int
+    author: str
+
+
+class YouTubeDataFetcher:
+    """
+    Fetches YouTube video data including comments.
+    Can work with or without API key (limited functionality without).
+    """
+    
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key
+        self.client = httpx.AsyncClient(timeout=30.0)
+    
+    async def get_comments(self, video_id: str, max_results: int = 100) -> list[Comment]:
+        """
+        Fetch top comments from a video.
+        Requires YouTube Data API key for full access.
+        Falls back to scraping if no API key.
+        """
+        if self.api_key:
+            return await self._fetch_comments_api(video_id, max_results)
+        else:
+            return await self._scrape_comments(video_id, max_results)
+    
+    async def _fetch_comments_api(self, video_id: str, max_results: int) -> list[Comment]:
+        """Fetch comments using official YouTube Data API"""
+        url = "https://www.googleapis.com/youtube/v3/commentThreads"
+        params = {
+            "part": "snippet",
+            "videoId": video_id,
+            "maxResults": min(max_results, 100),
+            "order": "relevance",  # Top comments first
+            "key": self.api_key
+        }
+        
+        try:
+            response = await self.client.get(url, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                comments = []
+                for item in data.get("items", []):
+                    snippet = item["snippet"]["topLevelComment"]["snippet"]
+                    comments.append(Comment(
+                        text=snippet["textDisplay"],
+                        likes=snippet.get("likeCount", 0),
+                        author=snippet["authorDisplayName"]
+                    ))
+                return comments
+            else:
+                print(f"YouTube API error: {response.status_code}")
+                return []
+        except Exception as e:
+            print(f"Error fetching comments: {e}")
+            return []
+    
+    async def _scrape_comments(self, video_id: str, max_results: int) -> list[Comment]:
+        """
+        Fallback: Try to get comments without API key.
+        This is limited and may not always work.
+        """
+        # For now, return empty - scraping YouTube is complex
+        # The API key method is recommended
+        print("Note: YouTube API key required for comment analysis")
+        return []
+    
+    async def get_video_metadata(self, video_id: str) -> Optional[VideoMetadata]:
+        """Fetch video title, description, tags"""
+        if self.api_key:
+            return await self._fetch_metadata_api(video_id)
+        return None
+    
+    async def _fetch_metadata_api(self, video_id: str) -> Optional[VideoMetadata]:
+        """Fetch metadata using YouTube Data API"""
+        url = "https://www.googleapis.com/youtube/v3/videos"
+        params = {
+            "part": "snippet",
+            "id": video_id,
+            "key": self.api_key
+        }
+        
+        try:
+            response = await self.client.get(url, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("items"):
+                    snippet = data["items"][0]["snippet"]
+                    return VideoMetadata(
+                        title=snippet.get("title", ""),
+                        description=snippet.get("description", ""),
+                        channel=snippet.get("channelTitle", ""),
+                        tags=snippet.get("tags", []),
+                        category=snippet.get("categoryId", "")
+                    )
+        except Exception as e:
+            print(f"Error fetching metadata: {e}")
+        return None
+    
+    async def close(self):
+        await self.client.aclose()
+
+
+# Comment danger patterns - STRICT patterns for actual safety warnings
+# These should only match when someone is genuinely warning about danger
+COMMENT_WARNING_PATTERNS = [
+    # Direct danger warnings - must be explicit warnings
+    (r"this is (dangerous|unsafe|a hazard)", "high", "Users flagging content as dangerous"),
+    (r"(don'?t|do not|never) (do|try|attempt) this", "high", "Users warning against attempting this"),
+    (r"(could|will|can) (catch fire|start a fire|burn down)", "high", "Fire hazard warnings"),
+    (r"(could|can|will|might) (kill|die|be fatal)", "high", "Lethal danger warnings"),
+    (r"(went to|ended up in|landed in) (the )?(hospital|er|emergency)", "high", "Reports of injuries"),
+    (r"toxic (fumes|gas|smoke|chemicals)", "high", "Toxic exposure warnings"),
+    
+    # Specific material/safety concerns
+    (r"not food (safe|grade)", "high", "Material safety concerns"),
+    (r"galvanized.*(heat|toxic|fumes|poison)", "high", "Galvanized metal warnings"),
+    (r"(dryer|aluminum).*(duct|vent|hose).*(toxic|fumes|poison|heat)", "high", "Improper material for heat"),
+    (r"melting point|will melt|starts melting", "high", "Heat rating warnings"),
+    
+    # Carbon monoxide specific
+    (r"carbon monoxide|co poisoning", "critical", "Carbon monoxide warnings"),
+    (r"metal fume fever|zinc (fumes|fever|poisoning)", "critical", "Metal fume fever warnings"),
+    
+    # Explicit professional warnings
+    (r"(call|hire|consult) (a |an )?(professional|electrician|plumber|doctor)", "medium", "Professional consultation needed"),
+    (r"against (building |fire )?code|code violation", "medium", "Building code violations"),
+]
+
+# AI/Fake content detection patterns
+AI_CONTENT_PATTERNS = [
+    # Direct AI mentions (most common comment types)
+    (r"^ai$", "high", "AI content confirmed by comment"),  # Standalone "AI" or "Ai"
+    (r"^ai[\.\!\?]?$", "high", "AI content confirmed by comment"),  # "AI." or "AI!"
+    (r"^this is ai", "high", "AI content confirmed"),
+    (r"^fake\b", "high", "Fake content identified"),
+    (r"\bai (slop|generated|made|content|video|image)\b", "high", "AI-generated content detected"),
+    (r"this is (ai|fake|cgi|generated|not real)\b", "high", "Users identifying AI/fake content"),
+    (r"(clearly |obviously )?(ai|fake|cgi|generated)\b", "medium", "Users suspect AI content"),
+    (r"made (with|by|using) ai\b", "high", "AI-generated content"),
+    (r"(deepfake|deep fake)\b", "critical", "Deepfake content detected"),
+    (r"(fake|ai) (video|image|picture|story)\b", "high", "Fake media identified"),
+    (r"\bnot real\b|\bdidn'?t happen\b|\bnever happened\b", "medium", "Content authenticity questioned"),
+    (r"(rage ?bait|click ?bait|engagement bait)\b", "medium", "Bait content identified"),
+    (r"(midjourney|dall-?e|stable diffusion|sora|runway|pika|kling)\b", "high", "AI tool mentioned"),
+    (r"(bot|spam) comment\b", "low", "Bot activity suspected"),
+    (r"\bthanks? ai\b", "high", "Sarcastic AI acknowledgment"),
+    (r"\bai (garbage|trash|crap|shit|bs)\b", "high", "Negative AI reaction"),
+    (r"\b100% (ai|fake|cgi)\b", "high", "Strong AI/fake claim"),
+    (r"\bso fake\b|\bso ai\b", "high", "Fake/AI content noted"),
+]
+
+
+def analyze_comments(comments: list[Comment]) -> dict:
+    """
+    Analyze comments for safety warnings and AI content detection.
+    Returns aggregated warning signals.
+    """
+    results = {
+        "total_comments": len(comments),
+        "warning_comments": 0,
+        "ai_comments": 0,
+        "warnings": [],
+        "warning_score": 100,  # Starts high, decreases with warnings
+        "top_concerns": [],
+        "has_ai_content": False
+    }
+    
+    concern_counts = {}
+    ai_concern_counts = {}
+    
+    for comment in comments:
+        text = comment.text.lower()
+        matched = False
+        
+        # Check safety warning patterns
+        for pattern, severity, description in COMMENT_WARNING_PATTERNS:
+            if re.search(pattern, text, re.IGNORECASE):
+                results["warning_comments"] += 1
+                matched = True
+                
+                # Weight by likes (popular warnings are more significant)
+                weight = 1 + (comment.likes / 10)
+                
+                if description not in concern_counts:
+                    concern_counts[description] = {"count": 0, "weight": 0, "severity": severity}
+                concern_counts[description]["count"] += 1
+                concern_counts[description]["weight"] += weight
+                
+                if len(results["warnings"]) < 10:
+                    results["warnings"].append({
+                        "severity": severity,
+                        "category": "Community Warning",
+                        "message": f"Comment: \"{comment.text[:100]}...\"" if len(comment.text) > 100 else f"Comment: \"{comment.text}\"",
+                        "likes": comment.likes,
+                        "source": f"@{comment.author}"
+                    })
+                break
+        
+        # Check AI content patterns (separate from safety)
+        if not matched:
+            for pattern, severity, description in AI_CONTENT_PATTERNS:
+                if re.search(pattern, text, re.IGNORECASE):
+                    results["ai_comments"] += 1
+                    results["has_ai_content"] = True
+                    
+                    weight = 1 + (comment.likes / 10)
+                    
+                    if description not in ai_concern_counts:
+                        ai_concern_counts[description] = {"count": 0, "weight": 0, "severity": severity}
+                    ai_concern_counts[description]["count"] += 1
+                    ai_concern_counts[description]["weight"] += weight
+                    
+                    # Add AI warnings separately
+                    if len([w for w in results["warnings"] if w["category"] == "AI Content"]) < 5:
+                        results["warnings"].append({
+                            "severity": severity,
+                            "category": "AI Content",
+                            "message": f"Comment: \"{comment.text[:100]}...\"" if len(comment.text) > 100 else f"Comment: \"{comment.text}\"",
+                            "likes": comment.likes,
+                            "source": f"@{comment.author}"
+                        })
+                    break
+    
+    # Calculate warning score based on community feedback
+    if comments:
+        warning_ratio = results["warning_comments"] / len(comments)
+        severity_penalty = sum(
+            c["weight"] * (30 if c["severity"] == "high" else 15 if c["severity"] == "medium" else 5)
+            for c in concern_counts.values()
+        )
+        results["warning_score"] = max(0, min(100, 100 - int(severity_penalty) - int(warning_ratio * 50)))
+    
+    # Top concerns sorted by weight
+    results["top_concerns"] = sorted(
+        [{"concern": k, **v} for k, v in concern_counts.items()],
+        key=lambda x: x["weight"],
+        reverse=True
+    )[:5]
+    
+    return results

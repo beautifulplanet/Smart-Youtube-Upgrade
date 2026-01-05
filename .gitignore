@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.env
+*.env
+*.log
+
+# Node/Chrome Extension
+node_modules/
+dist/
+build/
+
+# Editors/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing/Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Secrets (never commit API keys)
+secrets.json
+credentials.json

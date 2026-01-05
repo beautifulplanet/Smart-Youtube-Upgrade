@@ -1,0 +1,191 @@
+[
+  {
+    "id": "diy-001",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "galvanized pipe for bbq",
+      "galvanized steel grill",
+      "zinc coated for cooking",
+      "galvanized metal food",
+      "galvanized smoker"
+    ],
+    "warning_message": "DANGER: Heating galvanized metal releases toxic zinc oxide fumes causing metal fume fever",
+    "safe_alternative": "Use food-grade stainless steel, plain carbon steel, or cast iron for cooking surfaces",
+    "source": "OSHA Safety Guidelines"
+  },
+  {
+    "id": "diy-002",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "pvc pipe for compressed air",
+      "pvc air compressor line",
+      "plastic pipe pressurized",
+      "pvc air tank"
+    ],
+    "warning_message": "DANGER: PVC can shatter explosively under pressure, sending deadly shrapnel",
+    "safe_alternative": "Use copper, black iron, steel pipe, or rated rubber air hose for compressed air systems",
+    "source": "OSHA Compressed Air Safety"
+  },
+  {
+    "id": "diy-003",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "aluminum wiring is fine",
+      "connect aluminum to copper directly",
+      "aluminum wire safe for house",
+      "twist aluminum and copper"
+    ],
+    "warning_message": "Direct aluminum-copper connections oxidize and overheat, causing house fires",
+    "safe_alternative": "Use proper AL/CU rated connectors (like Alumiconn) or consult a licensed electrician",
+    "source": "NEC Electrical Code"
+  },
+  {
+    "id": "diy-004",
+    "category": "diy",
+    "severity": "medium",
+    "triggers": [
+      "pressure treated wood fire",
+      "burn treated lumber",
+      "pressure treated firewood",
+      "burn green treated wood"
+    ],
+    "warning_message": "Burning pressure-treated wood releases toxic chemicals including arsenic compounds",
+    "safe_alternative": "Only burn untreated, natural, seasoned wood. Dispose of treated wood properly",
+    "source": "EPA Guidelines"
+  },
+  {
+    "id": "diy-005",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "cut into wall blind",
+      "saw through wall without checking",
+      "cut drywall without scanning"
+    ],
+    "warning_message": "Cutting walls without checking for wires/pipes can cause electrocution or flooding",
+    "safe_alternative": "Use a stud finder with wire detection, check both sides of wall before cutting",
+    "source": "Construction Safety Standards"
+  },
+  {
+    "id": "diy-006",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "remove load bearing wall",
+      "knock down wall easy",
+      "take out wall yourself"
+    ],
+    "exclusions": ["engineer", "permit", "professional", "structural"],
+    "warning_message": "Removing load-bearing walls without proper support causes structural collapse",
+    "safe_alternative": "Always consult a structural engineer and get permits before removing any wall",
+    "source": "Building Code Requirements"
+  },
+  {
+    "id": "diy-007",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "indoor generator",
+      "generator in garage",
+      "run generator inside"
+    ],
+    "exclusions": ["never inside", "outdoor only", "ventilation"],
+    "warning_message": "DANGER: Indoor generator use causes fatal carbon monoxide poisoning",
+    "safe_alternative": "Always run generators outdoors, at least 20 feet from windows and doors",
+    "source": "CDC Carbon Monoxide Safety"
+  },
+  {
+    "id": "diy-008",
+    "category": "diy",
+    "severity": "medium",
+    "triggers": [
+      "drill into tile without water",
+      "dry drill ceramic",
+      "hammer drill tile"
+    ],
+    "warning_message": "Dry drilling tile creates heat cracks and silica dust (lung hazard)",
+    "safe_alternative": "Use water cooling and diamond bits for tile, wear respiratory protection",
+    "source": "OSHA Silica Safety"
+  },
+  {
+    "id": "diy-009",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "weld galvanized",
+      "welding zinc coated",
+      "cut galvanized with torch"
+    ],
+    "exclusions": ["proper ventilation", "respirator", "zinc fume"],
+    "warning_message": "Welding galvanized metal releases toxic zinc fumes causing metal fume fever",
+    "safe_alternative": "Remove galvanizing first, or use proper fume extraction and respiratory protection",
+    "source": "AWS Welding Safety"
+  },
+  {
+    "id": "diy-010",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "ladder on uneven ground",
+      "lean ladder on gutter",
+      "top step of ladder"
+    ],
+    "warning_message": "Improper ladder use is a leading cause of fall injuries and deaths",
+    "safe_alternative": "Use ladder on firm level ground, maintain 3 points of contact, never use top step",
+    "source": "OSHA Ladder Safety"
+  },
+  {
+    "id": "diy-011",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "dryer duct grill",
+      "dryer duct bbq",
+      "dryer hose smoker",
+      "laundry duct grill",
+      "flexible duct bbq",
+      "aluminum duct grill",
+      "dryer vent pipe grill",
+      "exhaust duct smoker",
+      "foil duct barbecue",
+      "connect two grills",
+      "duct between grills"
+    ],
+    "warning_message": "DANGER: Dryer/laundry duct is thin aluminum foil not rated for high heat - can melt, catch fire, or release toxic fumes",
+    "safe_alternative": "Use only high-temp rated stainless steel duct or proper BBQ/smoker components rated for cooking temperatures",
+    "source": "Fire Safety Guidelines"
+  },
+  {
+    "id": "diy-012",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "aluminum foil duct",
+      "flexible aluminum tube",
+      "cheap duct high heat",
+      "dryer pipe smoker",
+      "hvac duct grill"
+    ],
+    "warning_message": "DANGER: Thin aluminum ducting melts at BBQ temperatures (600°F+) and is a fire hazard",
+    "safe_alternative": "Use proper high-temperature rated stainless steel ducting for any cooking/smoking application",
+    "source": "NFPA Fire Codes"
+  },
+  {
+    "id": "diy-013",
+    "category": "diy",
+    "severity": "high",
+    "triggers": [
+      "not food grade",
+      "not rated for heat",
+      "cheap materials bbq",
+      "hardware store duct",
+      "home depot duct smoker"
+    ],
+    "warning_message": "DANGER: Using materials not rated for food contact or high temperatures can release toxic fumes and cause fires",
+    "safe_alternative": "Always use food-safe, high-temperature rated materials for cooking equipment",
+    "source": "FDA Food Contact Guidelines"
+  }
+]

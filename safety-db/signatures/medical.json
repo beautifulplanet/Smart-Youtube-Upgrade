@@ -1,0 +1,137 @@
+[
+  {
+    "id": "medical-001",
+    "category": "medical",
+    "severity": "high",
+    "triggers": [
+      "drink bleach to detox",
+      "mms miracle mineral",
+      "chlorine dioxide cure",
+      "bleach cure disease"
+    ],
+    "warning_message": "DANGER: Ingesting bleach or chlorine dioxide is toxic and potentially fatal",
+    "safe_alternative": "Consult licensed healthcare providers for any medical treatment",
+    "source": "FDA Warning"
+  },
+  {
+    "id": "medical-002",
+    "category": "medical",
+    "severity": "high",
+    "triggers": [
+      "essential oils cure cancer",
+      "oils replace vaccines",
+      "essential oil antibiotic",
+      "oil instead of medicine"
+    ],
+    "warning_message": "Essential oils are not proven treatments for serious diseases or infections",
+    "safe_alternative": "Consult healthcare providers for medical treatment, use oils only as complementary",
+    "source": "FDA/FTC Guidelines"
+  },
+  {
+    "id": "medical-003",
+    "category": "medical",
+    "severity": "medium",
+    "triggers": [
+      "put butter on burn",
+      "ice directly on burn",
+      "toothpaste on burn",
+      "egg white on burn"
+    ],
+    "warning_message": "These remedies trap heat, increase infection risk, and can worsen burns",
+    "safe_alternative": "Cool burn under cool (not cold) running water for 10-20 minutes",
+    "source": "American Burn Association"
+  },
+  {
+    "id": "medical-004",
+    "category": "medical",
+    "severity": "high",
+    "triggers": [
+      "tourniquet for any bleeding",
+      "always use tourniquet",
+      "tie off the limb tight"
+    ],
+    "exclusions": ["life-threatening", "arterial", "last resort", "severe hemorrhage"],
+    "warning_message": "Improper tourniquet use can cause permanent tissue damage and limb loss",
+    "safe_alternative": "Apply direct pressure first; tourniquet only for life-threatening bleeding",
+    "source": "Stop the Bleed Guidelines"
+  },
+  {
+    "id": "medical-005",
+    "category": "medical",
+    "severity": "high",
+    "triggers": [
+      "induce vomiting poison",
+      "make them throw up",
+      "vomiting after swallowing"
+    ],
+    "exclusions": ["do not induce", "don't induce", "call poison control"],
+    "warning_message": "Inducing vomiting can cause additional damage, especially with caustic substances",
+    "safe_alternative": "Call Poison Control immediately (1-800-222-1222 in US)",
+    "source": "American Association of Poison Control Centers"
+  },
+  {
+    "id": "medical-006",
+    "category": "medical",
+    "severity": "high",
+    "triggers": [
+      "tilt head back nosebleed",
+      "lean back for nosebleed"
+    ],
+    "warning_message": "Tilting head back causes blood to flow down throat, causing nausea/vomiting",
+    "safe_alternative": "Lean slightly forward, pinch soft part of nose for 10-15 minutes",
+    "source": "American Academy of Family Physicians"
+  },
+  {
+    "id": "medical-007",
+    "category": "medical",
+    "severity": "high",
+    "triggers": [
+      "rub alcohol on fever",
+      "alcohol bath temperature",
+      "rubbing alcohol cool down"
+    ],
+    "warning_message": "Alcohol is absorbed through skin and can cause alcohol poisoning, especially in children",
+    "safe_alternative": "Use lukewarm water, appropriate fever medications, and seek medical care if severe",
+    "source": "American Academy of Pediatrics"
+  },
+  {
+    "id": "medical-008",
+    "category": "medical",
+    "severity": "high",
+    "triggers": [
+      "remove impaled object",
+      "pull out knife",
+      "take out the object"
+    ],
+    "exclusions": ["do not remove", "leave in place", "stabilize"],
+    "warning_message": "Removing impaled objects can cause massive bleeding and additional damage",
+    "safe_alternative": "Stabilize the object in place, control bleeding around it, get emergency help",
+    "source": "Emergency Medical Services Guidelines"
+  },
+  {
+    "id": "medical-009",
+    "category": "medical",
+    "severity": "medium",
+    "triggers": [
+      "hydrogen peroxide wound",
+      "peroxide clean cut",
+      "alcohol on wound"
+    ],
+    "warning_message": "Hydrogen peroxide and alcohol damage healthy tissue and slow healing",
+    "safe_alternative": "Clean wounds with clean water or saline, apply antibiotic ointment",
+    "source": "American Academy of Dermatology"
+  },
+  {
+    "id": "medical-010",
+    "category": "medical",
+    "severity": "high",
+    "triggers": [
+      "put something in mouth seizure",
+      "bite stick seizure",
+      "hold down during seizure"
+    ],
+    "warning_message": "This can cause injury to both the person seizing and the helper",
+    "safe_alternative": "Clear area, protect head, time the seizure, don't restrain, call 911 if over 5 min",
+    "source": "Epilepsy Foundation"
+  }
+]

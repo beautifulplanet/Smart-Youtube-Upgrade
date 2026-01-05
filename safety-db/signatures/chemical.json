@@ -1,0 +1,83 @@
+[
+  {
+    "id": "chemical-001",
+    "category": "chemical",
+    "severity": "high",
+    "triggers": [
+      "mix bleach and ammonia",
+      "bleach with vinegar",
+      "combine cleaning products",
+      "bleach and acid"
+    ],
+    "exclusions": ["never mix", "don't mix", "dangerous to mix", "toxic gas"],
+    "warning_message": "DANGER: Mixing bleach with ammonia or acids creates toxic chlorine/chloramine gas",
+    "safe_alternative": "Never mix cleaning products. Use one at a time with good ventilation",
+    "source": "CDC Chemical Safety"
+  },
+  {
+    "id": "chemical-002",
+    "category": "chemical",
+    "severity": "high",
+    "triggers": [
+      "add water to acid",
+      "pour water into acid",
+      "water in acid bucket"
+    ],
+    "exclusions": ["add acid to water", "never add water to acid", "AAA rule"],
+    "warning_message": "Adding water to concentrated acid causes violent exothermic reaction and splashing",
+    "safe_alternative": "Always Add Acid to water (AAA rule), slowly with stirring",
+    "source": "OSHA Chemical Safety"
+  },
+  {
+    "id": "chemical-003",
+    "category": "chemical",
+    "severity": "high",
+    "triggers": [
+      "dry ice enclosed space",
+      "dry ice in car",
+      "dry ice sealed container"
+    ],
+    "warning_message": "Dry ice in enclosed spaces causes suffocation; in sealed containers it can explode",
+    "safe_alternative": "Use dry ice only in ventilated areas, never in airtight containers",
+    "source": "Compressed Gas Association"
+  },
+  {
+    "id": "chemical-004",
+    "category": "chemical",
+    "severity": "high",
+    "triggers": [
+      "brake cleaner welder",
+      "brake clean near welding",
+      "chlorinated solvent weld"
+    ],
+    "warning_message": "Chlorinated solvents near welding create phosgene gas - deadly even in small amounts",
+    "safe_alternative": "Never weld near chlorinated solvents, ensure complete ventilation",
+    "source": "AWS Welding Safety"
+  },
+  {
+    "id": "chemical-005",
+    "category": "chemical",
+    "severity": "medium",
+    "triggers": [
+      "gasoline clean parts",
+      "gas as solvent",
+      "gasoline degreaser"
+    ],
+    "warning_message": "Gasoline vapors are extremely flammable and toxic",
+    "safe_alternative": "Use proper degreasers or parts cleaner in ventilated areas",
+    "source": "OSHA Flammable Liquids"
+  },
+  {
+    "id": "chemical-006",
+    "category": "chemical",
+    "severity": "high",
+    "triggers": [
+      "pour gas on fire",
+      "gasoline start fire",
+      "accelerant on flames"
+    ],
+    "warning_message": "Adding gas to fire causes explosive flash fires and severe burns",
+    "safe_alternative": "Use proper fire starters, never add accelerants to existing flames",
+    "source": "NFPA Fire Safety"
+  }
+]
