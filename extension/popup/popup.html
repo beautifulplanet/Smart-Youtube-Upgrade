@@ -11,58 +11,147 @@
     <header>
       <div class="logo">🛡️</div>
       <h1>Safety Inspector</h1>
+      <button id="settings-toggle" class="settings-btn" title="Settings">⚙️</button>
     </header>
 
-    <div id="loading" class="loading hidden">
-      <div class="spinner"></div>
-      <p>Analyzing video...</p>
-    </div>
+    <!-- Main View -->
+    <div id="main-view">
+      <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Analyzing video...</p>
+      </div>
 
-    <div id="not-youtube" class="message hidden">
-      <div class="icon">📺</div>
-      <p>Navigate to a YouTube video to analyze its safety.</p>
-    </div>
+      <div id="not-youtube" class="message hidden">
+        <div class="icon">📺</div>
+        <p>Navigate to a YouTube video to analyze its safety.</p>
+      </div>
 
-    <div id="results" class="results hidden">
-      <div class="score-section">
-        <div class="score-circle" id="score-circle">
-          <span id="score-value">--</span>
+      <div id="results" class="results hidden">
+        <div class="score-section">
+          <div class="score-circle" id="score-circle">
+            <span id="score-value">--</span>
+          </div>
+          <div class="score-label" id="score-label">Safety Score</div>
         </div>
-        <div class="score-label" id="score-label">Safety Score</div>
+
+        <div class="warnings-section" id="warnings-section">
+          <h3>⚠️ Warnings Found</h3>
+          <ul id="warnings-list"></ul>
+        </div>
+
+        <div class="categories-section" id="categories-section">
+          <h3>📋 Categories Analyzed</h3>
+          <div id="categories-list" class="categories-grid"></div>
+        </div>
+
+        <div class="details-section">
+          <button id="view-details" class="btn-secondary">View Full Report</button>
+        </div>
       </div>
 
-      <div class="warnings-section" id="warnings-section">
-        <h3>⚠️ Warnings Found</h3>
-        <ul id="warnings-list"></ul>
-      </div>
-
-      <div class="categories-section" id="categories-section">
-        <h3>📋 Categories Analyzed</h3>
-        <div id="categories-list" class="categories-grid"></div>
-      </div>
-
-      <div class="details-section">
-        <button id="view-details" class="btn-secondary">View Full Report</button>
+      <div id="error" class="error hidden">
+        <div class="icon">❌</div>
+        <p id="error-message">An error occurred</p>
+        <button id="retry-btn" class="btn-primary">Retry</button>
       </div>
     </div>
 
-    <div id="error" class="error hidden">
-      <div class="icon">❌</div>
-      <p id="error-message">An error occurred</p>
-      <button id="retry-btn" class="btn-primary">Retry</button>
+    <!-- Settings View -->
+    <div id="settings-view" class="hidden">
+      <div class="settings-header">
+        <button id="settings-back" class="back-btn">← Back</button>
+        <h2>Settings</h2>
+      </div>
+      
+      <div class="settings-section">
+        <h3>🔍 Detection Features</h3>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">⚠️ Safety Warnings</span>
+            <span class="toggle-desc">Detect dangerous DIY, cooking, fitness content</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-safety" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">🤖 AI Content Detection</span>
+            <span class="toggle-desc">Flag AI-generated or fake videos</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-ai-detection" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>📺 Display Options</h3>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">✅ Show Alternatives</span>
+            <span class="toggle-desc">Suggest safe videos when warnings found</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-alternatives" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">🎯 AI Options Section</span>
+            <span class="toggle-desc">Show "Interested in AI?" tutorials & entertainment</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-ai-options" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">⚡ Auto-analyze</span>
+            <span class="toggle-desc">Automatically check videos on load</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="auto-analyze" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>🎨 Banner Style</h3>
+        <div class="style-options">
+          <label class="style-option">
+            <input type="radio" name="banner-style" value="minimal" checked>
+            <span class="style-preview minimal-preview">
+              <span class="preview-icon">🤖</span>
+              <span>Minimal</span>
+            </span>
+          </label>
+          <label class="style-option">
+            <input type="radio" name="banner-style" value="full">
+            <span class="style-preview full-preview">
+              <span class="preview-icon">🤖</span>
+              <span>Full Details</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <button id="reset-settings" class="btn-danger">Reset to Defaults</button>
+      </div>
     </div>
 
     <footer>
-      <div class="settings-row">
-        <label>
-          <input type="checkbox" id="auto-analyze" checked>
-          Auto-analyze videos
-        </label>
-      </div>
       <div class="api-status">
         <span class="status-dot" id="api-status-dot"></span>
         <span id="api-status-text">Checking API...</span>
       </div>
+      <div class="version">v1.1.0</div>
     </footer>
   </div>
 

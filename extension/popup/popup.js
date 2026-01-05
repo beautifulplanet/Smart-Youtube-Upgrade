@@ -1,8 +1,20 @@
 // Configuration
 const API_BASE_URL = 'http://localhost:8000';
 
+// Default settings
+const DEFAULT_SETTINGS = {
+  enableSafety: true,
+  enableAIDetection: true,
+  enableAlternatives: true,
+  enableAIOptions: true,
+  autoAnalyze: true,
+  bannerStyle: 'minimal'
+};
+
 // DOM Elements
 const elements = {
+  // Main view
+  mainView: document.getElementById('main-view'),
   loading: document.getElementById('loading'),
   notYoutube: document.getElementById('not-youtube'),
   results: document.getElementById('results'),
@@ -17,7 +29,21 @@ const elements = {
   categoriesList: document.getElementById('categories-list'),
   viewDetails: document.getElementById('view-details'),
   retryBtn: document.getElementById('retry-btn'),
+  
+  // Settings view
+  settingsView: document.getElementById('settings-view'),
+  settingsToggle: document.getElementById('settings-toggle'),
+  settingsBack: document.getElementById('settings-back'),
+  
+  // Settings toggles
+  enableSafety: document.getElementById('enable-safety'),
+  enableAIDetection: document.getElementById('enable-ai-detection'),
+  enableAlternatives: document.getElementById('enable-alternatives'),
+  enableAIOptions: document.getElementById('enable-ai-options'),
   autoAnalyze: document.getElementById('auto-analyze'),
+  resetSettings: document.getElementById('reset-settings'),
+  
+  // Footer
   apiStatusDot: document.getElementById('api-status-dot'),
   apiStatusText: document.getElementById('api-status-text')
 };
@@ -25,18 +51,47 @@ const elements = {
 // State
 let currentVideoId = null;
 let cachedResults = {};
+let currentSettings = { ...DEFAULT_SETTINGS };
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
-  await checkApiStatus();
   await loadSettings();
+  await checkApiStatus();
   await analyzeCurrentTab();
   
-  // Event listeners
+  // Event listeners - Main view
   elements.retryBtn.addEventListener('click', analyzeCurrentTab);
   elements.viewDetails.addEventListener('click', openFullReport);
+  
+  // Event listeners - Settings navigation
+  elements.settingsToggle.addEventListener('click', showSettingsView);
+  elements.settingsBack.addEventListener('click', showMainView);
+  
+  // Event listeners - Settings toggles
+  elements.enableSafety.addEventListener('change', saveSettings);
+  elements.enableAIDetection.addEventListener('change', saveSettings);
+  elements.enableAlternatives.addEventListener('change', saveSettings);
+  elements.enableAIOptions.addEventListener('change', saveSettings);
   elements.autoAnalyze.addEventListener('change', saveSettings);
+  elements.resetSettings.addEventListener('click', resetSettings);
+  
+  // Banner style radio buttons
+  document.querySelectorAll('input[name="banner-style"]').forEach(radio => {
+    radio.addEventListener('change', saveSettings);
+  });
 });
+
+// Show settings view
+function showSettingsView() {
+  elements.mainView.classList.add('hidden');
+  elements.settingsView.classList.remove('hidden');
+}
+
+// Show main view
+function showMainView() {
+  elements.settingsView.classList.add('hidden');
+  elements.mainView.classList.remove('hidden');
+}
 
 // Check if backend API is running
 async function checkApiStatus() {
@@ -58,21 +113,94 @@ async function checkApiStatus() {
   
   elements.apiStatusDot.classList.add('disconnected');
   elements.apiStatusDot.classList.remove('connected');
-  elements.apiStatusText.textContent = 'API Offline - Start backend';
+  elements.apiStatusText.textContent = 'API Offline';
   return false;
 }
 
 // Load user settings
 async function loadSettings() {
-  const settings = await chrome.storage.sync.get(['autoAnalyze']);
-  elements.autoAnalyze.checked = settings.autoAnalyze !== false;
+  try {
+    const stored = await chrome.storage.sync.get(['inspectorSettings']);
+    if (stored.inspectorSettings) {
+      currentSettings = { ...DEFAULT_SETTINGS, ...stored.inspectorSettings };
+    }
+    
+    // Apply to UI
+    elements.enableSafety.checked = currentSettings.enableSafety;
+    elements.enableAIDetection.checked = currentSettings.enableAIDetection;
+    elements.enableAlternatives.checked = currentSettings.enableAlternatives;
+    elements.enableAIOptions.checked = currentSettings.enableAIOptions;
+    elements.autoAnalyze.checked = currentSettings.autoAnalyze;
+    
+    // Set banner style
+    const styleRadio = document.querySelector(`input[name="banner-style"][value="${currentSettings.bannerStyle}"]`);
+    if (styleRadio) styleRadio.checked = true;
+    
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+  }
 }
 
 // Save user settings
 async function saveSettings() {
-  await chrome.storage.sync.set({
-    autoAnalyze: elements.autoAnalyze.checked
-  });
+  currentSettings = {
+    enableSafety: elements.enableSafety.checked,
+    enableAIDetection: elements.enableAIDetection.checked,
+    enableAlternatives: elements.enableAlternatives.checked,
+    enableAIOptions: elements.enableAIOptions.checked,
+    autoAnalyze: elements.autoAnalyze.checked,
+    bannerStyle: document.querySelector('input[name="banner-style"]:checked')?.value || 'minimal'
+  };
+  
+  try {
+    await chrome.storage.sync.set({ inspectorSettings: currentSettings });
+    
+    // Notify content script of settings change
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id && tab.url?.includes('youtube.com')) {
+      chrome.tabs.sendMessage(tab.id, { 
+        type: 'SETTINGS_UPDATED', 
+        settings: currentSettings 
+      }).catch(() => {}); // Ignore if content script not ready
+    }
+    
+    // Show brief confirmation
+    showSettingsSaved();
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+  }
+}
+
+// Reset settings to defaults
+async function resetSettings() {
+  currentSettings = { ...DEFAULT_SETTINGS };
+  
+  // Apply to UI
+  elements.enableSafety.checked = currentSettings.enableSafety;
+  elements.enableAIDetection.checked = currentSettings.enableAIDetection;
+  elements.enableAlternatives.checked = currentSettings.enableAlternatives;
+  elements.enableAIOptions.checked = currentSettings.enableAIOptions;
+  elements.autoAnalyze.checked = currentSettings.autoAnalyze;
+  document.querySelector('input[name="banner-style"][value="minimal"]').checked = true;
+  
+  await saveSettings();
+}
+
+// Show saved confirmation
+function showSettingsSaved() {
+  const btn = elements.resetSettings;
+  const originalText = btn.textContent;
+  btn.textContent = '✓ Settings Saved';
+  btn.style.background = 'rgba(0, 212, 255, 0.2)';
+  btn.style.borderColor = 'rgba(0, 212, 255, 0.3)';
+  btn.style.color = '#00d4ff';
+  
+  setTimeout(() => {
+    btn.textContent = originalText;
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }, 1500);
 }
 
 // Get current tab and analyze if YouTube

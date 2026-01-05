@@ -10,6 +10,46 @@ let aiFlashInterval = null;
 let aiContentDetected = false;
 let lastAnalyzedVideoId = null;
 
+// User settings (loaded from chrome.storage)
+let userSettings = {
+  enableSafety: true,
+  enableAIDetection: true,
+  enableAlternatives: true,
+  enableAIOptions: true,
+  autoAnalyze: true,
+  bannerStyle: 'minimal'
+};
+
+// Load settings immediately
+loadUserSettings();
+
+// Listen for settings updates from popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'SETTINGS_UPDATED') {
+    console.log('🛡️ Settings updated:', message.settings);
+    userSettings = { ...userSettings, ...message.settings };
+    // Re-evaluate current video with new settings
+    if (!userSettings.enableAIDetection && !userSettings.enableSafety) {
+      hideAllOverlays();
+    }
+    sendResponse({ success: true });
+  }
+  return true;
+});
+
+// Load user settings from storage
+async function loadUserSettings() {
+  try {
+    const stored = await chrome.storage.sync.get(['inspectorSettings']);
+    if (stored.inspectorSettings) {
+      userSettings = { ...userSettings, ...stored.inspectorSettings };
+      console.log('🛡️ Settings loaded:', userSettings);
+    }
+  } catch (error) {
+    console.error('🛡️ Failed to load settings:', error);
+  }
+}
+
 // Inject immediately when script loads
 injectOverlay();
 injectAIBanner();
@@ -790,6 +830,7 @@ function showAIBanner(message, duration = 0, alternatives = [], detectedAnimal =
   const altSection = document.getElementById('ai-banner-alternatives');
   const altGrid = document.getElementById('ai-alt-grid');
   const sectionTitle = document.getElementById('ai-section-title');
+  const aiOptionsSection = document.getElementById('ai-options-section');
   
   if (banner && messageEl) {
     messageEl.textContent = message || 'Community members indicate this may be AI-generated';
@@ -800,8 +841,13 @@ function showAIBanner(message, duration = 0, alternatives = [], detectedAnimal =
       console.log('🐾 Stored detected subject:', detectedAnimal);
     }
     
-    // Show alternatives in YouTube-style grid if available
-    if (altSection && altGrid && alternatives.length > 0) {
+    // Show/hide AI options section based on user settings
+    if (aiOptionsSection) {
+      aiOptionsSection.style.display = userSettings.enableAIOptions ? 'block' : 'none';
+    }
+    
+    // Show alternatives in YouTube-style grid if available AND alternatives enabled
+    if (altSection && altGrid && alternatives.length > 0 && userSettings.enableAlternatives) {
       // Update section title based on detected animal
       if (sectionTitle) {
         if (detectedAnimal) {
@@ -957,6 +1003,18 @@ async function checkVideo() {
     return;
   }
   
+  // Check if auto-analyze is enabled
+  if (!userSettings.autoAnalyze) {
+    console.log('🛡️ Auto-analyze disabled, skipping');
+    return;
+  }
+  
+  // Check if both features are disabled - nothing to do
+  if (!userSettings.enableSafety && !userSettings.enableAIDetection) {
+    console.log('🛡️ All detection features disabled');
+    return;
+  }
+  
   // Skip if ad is playing
   if (isAdPlaying()) {
     console.log('🛡️ Ad detected, skipping analysis');
@@ -1014,11 +1072,11 @@ function showResults(results) {
   }
   
   // Check for AI content - look for AI category warnings OR vision analysis
-  // BUT skip for trusted channels
+  // BUT skip for trusted channels AND if AI detection is disabled
   const visionDetectedAI = results.vision_analysis?.is_ai_generated;
   const visionConcerns = results.vision_analysis?.concerns || [];
   
-  const aiWarnings = isTrustedChannel ? [] : warnings.filter(w => 
+  const aiWarnings = (isTrustedChannel || !userSettings.enableAIDetection) ? [] : warnings.filter(w => 
     w.category === 'AI Content' || 
     w.category === 'AI Generated Content' ||
     w.category === 'AI Vision Analysis' ||
@@ -1035,11 +1093,11 @@ function showResults(results) {
     ))
   );
   
-  console.log('🤖 AI detection check - warnings:', warnings.length, 'AI warnings found:', aiWarnings.length, 'aiBannerShown:', aiBannerShown);
+  console.log('🤖 AI detection check - enabled:', userSettings.enableAIDetection, 'warnings:', warnings.length, 'AI warnings found:', aiWarnings.length, 'aiBannerShown:', aiBannerShown);
   
   // Show AI banner if AI content detected (comments, vision, or both)
-  // BUT NOT for trusted channels
-  if ((aiWarnings.length > 0 || (visionDetectedAI && !isTrustedChannel)) && !aiBannerShown) {
+  // BUT NOT for trusted channels AND only if AI detection is enabled
+  if (userSettings.enableAIDetection && (aiWarnings.length > 0 || (visionDetectedAI && !isTrustedChannel)) && !aiBannerShown) {
     aiBannerShown = true;
     aiContentDetected = true;
     
@@ -1071,16 +1129,19 @@ function showResults(results) {
   }
   
   // Only count HIGH severity community warnings (real danger signals)
-  const highSeverityWarnings = warnings.filter(w => 
+  // Skip if safety warnings are disabled
+  const highSeverityWarnings = userSettings.enableSafety ? warnings.filter(w => 
     (w.severity === 'high' || w.severity === 'critical') &&
     w.category !== 'AI Generated Content' // Don't count AI as danger
-  );
+  ) : [];
   
-  // STRICT CRITERIA: Only show overlay if:
+  // STRICT CRITERIA: Only show overlay if safety is enabled AND:
   // 1. Score is VERY low (< 35) AND has multiple warnings, OR
   // 2. Has 3+ high-severity community warnings about danger
-  const isDangerous = (score < 35 && highSeverityWarnings.length >= 2) || 
-                      highSeverityWarnings.length >= 3;
+  const isDangerous = userSettings.enableSafety && (
+    (score < 35 && highSeverityWarnings.length >= 2) || 
+    highSeverityWarnings.length >= 3
+  );
 
   if (!isDangerous) {
     console.log('🛡️ Video appears safe, score:', score, 'high-severity warnings:', highSeverityWarnings.length);
@@ -1103,14 +1164,14 @@ function showResults(results) {
     `).join('');
   }
 
-  // Show safe alternatives if available
+  // Show safe alternatives if available AND if alternatives are enabled
   const alternatives = results.safe_alternatives?.alternatives || [];
   const altSection = document.getElementById('alternatives-section');
   const altList = document.getElementById('alternatives-list');
   const altTitle = document.getElementById('alternatives-title');
   const altMessage = document.getElementById('alternatives-message');
   
-  if (altSection && altList && alternatives.length > 0) {
+  if (altSection && altList && alternatives.length > 0 && userSettings.enableAlternatives) {
     // Customize title based on content type
     const categoryType = results.safe_alternatives?.category_type || '';
     if (categoryType === 'real_animals') {

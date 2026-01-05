@@ -140,6 +140,24 @@ COMMENT_WARNING_PATTERNS = [
     (r"(dryer|aluminum).*(duct|vent|hose).*(toxic|fumes|poison|heat)", "high", "Improper material for heat"),
     (r"melting point|will melt|starts melting", "high", "Heat rating warnings"),
     
+    # Toxic fumes/coatings - expanded patterns
+    (r"fumes.*(toxic|dangerous|poison)", "high", "Toxic fumes warning"),
+    (r"toxic.*(coating|fume|material|metal|plastic|liner)", "high", "Toxic material warning"),
+    (r"(ducting|duct|hose|tube|pipe|tubing).*(toxic|poison|dangerous|fumes)", "high", "Unsafe tubing/ducting warning"),
+    (r"not rated for (heat|food|cooking|high temp)", "high", "Material not rated for use"),
+    (r"(will|can|does) (release|off-?gas|emit|give off).*(fumes|chemicals|toxins|poison)", "high", "Off-gassing warning"),
+    (r"(when|if) heated.*(toxic|poison|fumes|dangerous)", "high", "Heat releases toxins warning"),
+    (r"heated to high temp.*(toxic|poison|dangerous|fumes)", "high", "High heat toxicity warning"),
+    (r"(dangerous|toxic).*(when|if) heated", "high", "Heat danger warning"),
+    (r"insanely dangerous", "critical", "Extreme danger warning"),
+    
+    # DIY cooking/grilling dangers
+    (r"(dryer|foil|flex|aluminum) (duct|hose|vent|tube)", "medium", "DIY ducting used (check for heat safety)"),
+    (r"not (meant|designed|rated|safe) for (cooking|food|heat|smoking|grilling)", "high", "Material not meant for cooking"),
+    (r"(zinc|galvanized|plastic|pvc).*(fumes|heat|cook|food|grill|smok)", "high", "Unsafe material for cooking"),
+    (r"food.*(contact|safe|grade).*no", "high", "Not food safe warning"),
+    (r"(don'?t|do not|never).*(cook|grill|smoke|bbq|barbecue).*(this|that|these|those)", "high", "Warning against cooking method"),
+    
     # Carbon monoxide specific
     (r"carbon monoxide|co poisoning", "critical", "Carbon monoxide warnings"),
     (r"metal fume fever|zinc (fumes|fever|poisoning)", "critical", "Metal fume fever warnings"),
