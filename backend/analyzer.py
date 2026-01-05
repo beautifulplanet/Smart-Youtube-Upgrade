@@ -47,6 +47,55 @@ class SafetyAnalyzer:
         # Get API key from param, env, or None
         self.youtube_api_key = youtube_api_key or os.environ.get("YOUTUBE_API_KEY")
         
+        # Heuristic patterns for impossible/AI content
+        # Animals that appear to talk, have conversations, or do impossible things
+        self._impossible_patterns = [
+            # Talking animals - conversation keywords
+            (r"\b(parrot|bird|cat|dog|monkey|ape|gorilla|chimp|elephant|lion|tiger|bear|fox|raccoon|squirrel|rabbit|hamster|horse|cow|pig|chicken|duck|goose|owl|crow|raven|fish|shark|whale|dolphin|seal|penguin|frog|turtle|snake|lizard|gecko|iguana|crocodile|alligator)\b.{0,40}\b(talk|talking|speaks|speaking|says|said|conversation|chat|chatting|argue|arguing|debate|interview|podcast|call|phone|answer|respond|tells|told|ask|asking|wants|demanded|yells|screaming|complain|rant|confess|admit|explain|announce|declare|insist|refuse|agree|disagree)\b", 
+             "Animal appearing to communicate like a human"),
+            (r"\b(talk|talking|speaks|speaking|says|said|conversation|chat|chatting|argue|arguing|debate|interview|podcast|call|phone|answer|respond|tells|told|ask|asking|wants|demanded|yells|screaming|complain|rant|confess|admit|explain|announce|declare|insist|refuse|agree|disagree)\b.{0,40}\b(parrot|bird|cat|dog|monkey|ape|gorilla|chimp|elephant|lion|tiger|bear|fox|raccoon|squirrel|rabbit|hamster|horse|cow|pig|chicken|duck|goose|owl|crow|raven|fish|shark|whale|dolphin|seal|penguin|frog|turtle|snake|lizard|gecko|iguana|crocodile|alligator)\b",
+             "Animal appearing to communicate like a human"),
+            # Animals wanting/demanding things (AI trope)
+            (r"\b(parrot|bird|cat|dog|monkey|gorilla|raccoon|fox|bear|elephant|lion|tiger)\b.{0,20}\b(wants|needs|demands|orders|requests|insists|refuses|complains)\b.{0,20}\b(fbi|police|911|lawyer|manager|refund|divorce|custody|money|revenge)\b",
+             "Animal demanding human services (common AI trope)"),
+            # Animals doing impossible human activities
+            (r"\b(cat|dog|bird|parrot|monkey|bear|lion|tiger|elephant|gorilla|raccoon|fox|squirrel|rabbit|fish|penguin|owl)\b.{0,30}\b(drive|driving|drove|cook|cooking|cooked|play piano|playing piano|type|typing|typed|text|texting|texted|email|emailing|read|reading|write|writing|wrote|paint|painting|painted|sing|singing|sang|dance|dancing|danced|ballet|opera|graduate|graduating|married|wedding|divorce|court|sue|lawsuit)\b",
+             "Animal performing impossible human activity"),
+            # Animals with jobs/professions
+            (r"\b(cat|dog|bird|parrot|raccoon|monkey|bear)\b.{0,20}\b(lawyer|doctor|chef|pilot|driver|ceo|manager|employee|boss|judge|cop|officer|agent|detective)\b",
+             "Animal with human profession (likely AI)"),
+            # Impossible animal interactions
+            (r"\b(cat|dog|bird|mouse|rabbit|hamster|fish|parrot)\b.{0,30}\b(save|saves|saved|rescue|rescues|rescued|hero|call 911|calls 911|called 911|call police|calls police|ambulance|fire department)\b",
+             "Animal performing heroic human actions"),
+            # Viral AI tropes
+            (r"\b(animal|cat|dog|bird|parrot).{0,20}(facetime|video call|zoom|teams call|skype)\b",
+             "Animal on video call (common AI trope)"),
+            (r"\b(cat|dog|parrot|bird).{0,20}(order|ordering|ordered|uber|doordash|pizza|food delivery|amazon|online shopping)\b",
+             "Animal ordering services (common AI trope)"),
+            # Animals in legal/dramatic situations
+            (r"\b(cat|dog|parrot|bird|raccoon|monkey).{0,30}(court|trial|testif|lawyer|sue|custody|arrested|jail|prison|fbi|cia|police|detective|investigate)\b",
+             "Animal in legal/dramatic situation (likely AI)"),
+            # Animals with human emotions/drama
+            (r"\b(cat|dog|parrot|bird|raccoon).{0,20}(breakup|broke up|cheating|cheated|divorce|married|wedding|pregnant|baby daddy|custody battle)\b",
+             "Animal in human relationship drama (likely AI)"),
+        ]
+        
+    def _detect_impossible_content(self, title: str) -> str | None:
+        """
+        Detect likely AI content based on impossible scenarios in video title.
+        Returns description of why it's flagged, or None if not detected.
+        """
+        if not title:
+            return None
+            
+        title_lower = title.lower()
+        
+        for pattern, description in self._impossible_patterns:
+            if re.search(pattern, title_lower, re.IGNORECASE):
+                return description
+        
+        return None
+        
     async def analyze(self, video_id: str) -> dict:
         """
         Perform full safety analysis on a video.
@@ -87,6 +136,20 @@ class SafetyAnalyzer:
                 if w.get("category") != "AI Content"
             ]
             comment_analysis["has_ai_content"] = False
+        
+        # Step 2.5: Heuristic AI detection for impossible animal behaviors
+        # This catches AI content even when comments don't flag it
+        if not is_trusted_channel and video_title:
+            heuristic_ai = self._detect_impossible_content(video_title)
+            if heuristic_ai:
+                comment_analysis["has_ai_content"] = True
+                comment_analysis["warnings"].insert(0, {
+                    "category": "AI Content",
+                    "severity": "high",
+                    "message": f"Heuristic: {heuristic_ai}",
+                    "timestamp": None
+                })
+                print(f"🤖 Heuristic AI detection triggered: {heuristic_ai}")
         
         # Step 3: Match against danger signatures (transcript + comment text)
         all_text = transcript_text
