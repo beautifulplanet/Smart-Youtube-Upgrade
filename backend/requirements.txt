@@ -4,6 +4,7 @@ uvicorn==0.27.0
 pydantic==2.5.3
 youtube-transcript-api==0.6.2
 httpx==0.26.0
+google-api-python-client==2.111.0
 
 # Optional: AI Analysis (uncomment if using)
 # openai==1.12.0
