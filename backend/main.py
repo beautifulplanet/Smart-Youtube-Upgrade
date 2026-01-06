@@ -335,6 +335,36 @@ async def get_ai_entertainment(request: AIContentRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/real-alternatives")
+async def get_real_alternatives(request: AIContentRequest):
+    """
+    Get real/verified video alternatives.
+    For users who want verified, non-AI content.
+    Returns curated content from trusted channels based on detected animal.
+    """
+    try:
+        max_results = request.max_results or 8
+        subject = request.subject.lower() if request.subject else None
+        
+        # Get animal-specific videos if we detected an animal
+        if subject and subject in alternatives_finder.FALLBACK_REAL_ANIMALS:
+            real_videos = alternatives_finder.FALLBACK_REAL_ANIMALS[subject][:max_results]
+            animal_name = subject.title()
+        else:
+            real_videos = alternatives_finder.FALLBACK_REAL_ANIMALS["default"][:max_results]
+            animal_name = "Wildlife"
+        
+        return {
+            "enabled": True,
+            "alternatives": real_videos,
+            "category_type": "real_videos",
+            "message": f"🦁 {len(real_videos)} real {animal_name} videos from trusted channels",
+            "detected_subject": subject
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/report/{video_id}", response_class=HTMLResponse)
 async def get_full_report(video_id: str):
     """Generate a full HTML report for a video analysis"""

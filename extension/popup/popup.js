@@ -1,51 +1,42 @@
 // Configuration
 const API_BASE_URL = 'http://localhost:8000';
 
-// Default settings
+// Default settings - comprehensive list
 const DEFAULT_SETTINGS = {
+  // Detection
   enableSafety: true,
   enableAIDetection: true,
-  enableAlternatives: true,
-  enableAIOptions: true,
   autoAnalyze: true,
-  bannerStyle: 'minimal'
-};
-
-// DOM Elements
-const elements = {
-  // Main view
-  mainView: document.getElementById('main-view'),
-  loading: document.getElementById('loading'),
-  notYoutube: document.getElementById('not-youtube'),
-  results: document.getElementById('results'),
-  error: document.getElementById('error'),
-  errorMessage: document.getElementById('error-message'),
-  scoreCircle: document.getElementById('score-circle'),
-  scoreValue: document.getElementById('score-value'),
-  scoreLabel: document.getElementById('score-label'),
-  warningsSection: document.getElementById('warnings-section'),
-  warningsList: document.getElementById('warnings-list'),
-  categoriesSection: document.getElementById('categories-section'),
-  categoriesList: document.getElementById('categories-list'),
-  viewDetails: document.getElementById('view-details'),
-  retryBtn: document.getElementById('retry-btn'),
   
-  // Settings view
-  settingsView: document.getElementById('settings-view'),
-  settingsToggle: document.getElementById('settings-toggle'),
-  settingsBack: document.getElementById('settings-back'),
+  // Video Types
+  enableRegularVideos: true,
+  enableShorts: true,
   
-  // Settings toggles
-  enableSafety: document.getElementById('enable-safety'),
-  enableAIDetection: document.getElementById('enable-ai-detection'),
-  enableAlternatives: document.getElementById('enable-alternatives'),
-  enableAIOptions: document.getElementById('enable-ai-options'),
-  autoAnalyze: document.getElementById('auto-analyze'),
-  resetSettings: document.getElementById('reset-settings'),
+  // Suggestions
+  enableAlternatives: true,
+  enableAITutorials: true,
+  enableAIEntertainment: true,
   
-  // Footer
-  apiStatusDot: document.getElementById('api-status-dot'),
-  apiStatusText: document.getElementById('api-status-text')
+  // Banner Behavior
+  bannerStyle: 'modal',
+  autoDismiss: 0,
+  enableReminders: true,
+  enableEndAlert: true,
+  
+  // Alerts
+  enableSound: false,
+  enableVisualEffects: true,
+  
+  // Sensitivity
+  aiSensitivity: 'medium',
+  safetySensitivity: 'medium',
+  
+  // Privacy
+  enableAnalytics: false,
+  enableCache: true,
+  
+  // Trusted Channels
+  trustedChannels: ['National Geographic', 'BBC Earth', 'The Dodo', 'Discovery', 'Smithsonian Channel', 'PBS Nature']
 };
 
 // State
@@ -53,48 +44,117 @@ let currentVideoId = null;
 let cachedResults = {};
 let currentSettings = { ...DEFAULT_SETTINGS };
 
+// DOM Elements cache
+const elements = {
+  loading: null,
+  notYoutube: null,
+  results: null,
+  error: null,
+  errorMessage: null,
+  scoreValue: null,
+  scoreCircle: null,
+  scoreLabel: null,
+  warningsSection: null,
+  warningsList: null,
+  categoriesList: null
+};
+
+// Initialize DOM elements
+function initElements() {
+  elements.loading = document.getElementById('loading');
+  elements.notYoutube = document.getElementById('not-youtube');
+  elements.results = document.getElementById('results');
+  elements.error = document.getElementById('error');
+  elements.errorMessage = document.getElementById('error-message');
+  elements.scoreValue = document.getElementById('score-value');
+  elements.scoreCircle = document.getElementById('score-circle');
+  elements.scoreLabel = document.getElementById('score-label');
+  elements.warningsSection = document.getElementById('warnings-section');
+  elements.warningsList = document.getElementById('warnings-list');
+  elements.categoriesList = document.getElementById('categories-list');
+}
+
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('Popup loaded, initializing...');
+  
+  // Initialize DOM element references
+  initElements();
+  
   await loadSettings();
   await checkApiStatus();
   await analyzeCurrentTab();
   
   // Event listeners - Main view
-  elements.retryBtn.addEventListener('click', analyzeCurrentTab);
-  elements.viewDetails.addEventListener('click', openFullReport);
+  document.getElementById('retry-btn')?.addEventListener('click', analyzeCurrentTab);
+  document.getElementById('view-details')?.addEventListener('click', openFullReport);
   
   // Event listeners - Settings navigation
-  elements.settingsToggle.addEventListener('click', showSettingsView);
-  elements.settingsBack.addEventListener('click', showMainView);
+  const settingsBtn = document.getElementById('settings-toggle');
+  console.log('Settings button found:', settingsBtn);
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      console.log('Settings button clicked!');
+      showSettingsView();
+    });
+  }
+  document.getElementById('settings-back')?.addEventListener('click', showMainView);
   
-  // Event listeners - Settings toggles
-  elements.enableSafety.addEventListener('change', saveSettings);
-  elements.enableAIDetection.addEventListener('change', saveSettings);
-  elements.enableAlternatives.addEventListener('change', saveSettings);
-  elements.enableAIOptions.addEventListener('change', saveSettings);
-  elements.autoAnalyze.addEventListener('change', saveSettings);
-  elements.resetSettings.addEventListener('click', resetSettings);
+  // Event listeners - All toggles and selects
+  setupSettingsListeners();
   
-  // Banner style radio buttons
-  document.querySelectorAll('input[name="banner-style"]').forEach(radio => {
-    radio.addEventListener('change', saveSettings);
+  // Settings actions
+  document.getElementById('reset-settings')?.addEventListener('click', resetSettings);
+  document.getElementById('export-settings')?.addEventListener('click', exportSettings);
+  document.getElementById('import-settings')?.addEventListener('click', importSettings);
+  document.getElementById('add-trusted-btn')?.addEventListener('click', addTrustedChannel);
+  
+  // Enter key for adding trusted channel
+  document.getElementById('new-trusted-channel')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addTrustedChannel();
   });
 });
 
+// Setup all settings input listeners
+function setupSettingsListeners() {
+  // Toggle checkboxes
+  const toggles = [
+    'enable-safety', 'enable-ai-detection', 'auto-analyze',
+    'enable-regular-videos', 'enable-shorts',
+    'enable-alternatives', 'enable-ai-tutorials', 'enable-ai-entertainment',
+    'enable-reminders', 'enable-end-alert',
+    'enable-sound', 'enable-visual-effects',
+    'enable-analytics', 'enable-cache'
+  ];
+  
+  toggles.forEach(id => {
+    document.getElementById(id)?.addEventListener('change', saveSettings);
+  });
+  
+  // Select dropdowns
+  const selects = ['banner-style', 'auto-dismiss', 'ai-sensitivity', 'safety-sensitivity'];
+  selects.forEach(id => {
+    document.getElementById(id)?.addEventListener('change', saveSettings);
+  });
+}
+
 // Show settings view
 function showSettingsView() {
-  elements.mainView.classList.add('hidden');
-  elements.settingsView.classList.remove('hidden');
+  document.getElementById('main-view').classList.add('hidden');
+  document.getElementById('settings-view').classList.remove('hidden');
 }
 
 // Show main view
 function showMainView() {
-  elements.settingsView.classList.add('hidden');
-  elements.mainView.classList.remove('hidden');
+  document.getElementById('settings-view').classList.add('hidden');
+  document.getElementById('main-view').classList.remove('hidden');
 }
 
 // Check if backend API is running
 async function checkApiStatus() {
+  const dot = document.getElementById('api-status-dot');
+  const text = document.getElementById('api-status-text');
+  
   try {
     const response = await fetch(`${API_BASE_URL}/health`, { 
       method: 'GET',
@@ -102,18 +162,18 @@ async function checkApiStatus() {
     });
     
     if (response.ok) {
-      elements.apiStatusDot.classList.add('connected');
-      elements.apiStatusDot.classList.remove('disconnected');
-      elements.apiStatusText.textContent = 'API Connected';
+      dot?.classList.add('connected');
+      dot?.classList.remove('disconnected');
+      if (text) text.textContent = 'API Connected';
       return true;
     }
   } catch (error) {
     console.error('API check failed:', error);
   }
   
-  elements.apiStatusDot.classList.add('disconnected');
-  elements.apiStatusDot.classList.remove('connected');
-  elements.apiStatusText.textContent = 'API Offline';
+  dot?.classList.add('disconnected');
+  dot?.classList.remove('connected');
+  if (text) text.textContent = 'API Offline';
   return false;
 }
 
@@ -125,31 +185,93 @@ async function loadSettings() {
       currentSettings = { ...DEFAULT_SETTINGS, ...stored.inspectorSettings };
     }
     
-    // Apply to UI
-    elements.enableSafety.checked = currentSettings.enableSafety;
-    elements.enableAIDetection.checked = currentSettings.enableAIDetection;
-    elements.enableAlternatives.checked = currentSettings.enableAlternatives;
-    elements.enableAIOptions.checked = currentSettings.enableAIOptions;
-    elements.autoAnalyze.checked = currentSettings.autoAnalyze;
-    
-    // Set banner style
-    const styleRadio = document.querySelector(`input[name="banner-style"][value="${currentSettings.bannerStyle}"]`);
-    if (styleRadio) styleRadio.checked = true;
+    applySettingsToUI();
+    renderTrustedChannels();
     
   } catch (error) {
     console.error('Failed to load settings:', error);
   }
 }
 
+// Apply settings to UI elements
+function applySettingsToUI() {
+  // Toggles
+  setCheckbox('enable-safety', currentSettings.enableSafety);
+  setCheckbox('enable-ai-detection', currentSettings.enableAIDetection);
+  setCheckbox('auto-analyze', currentSettings.autoAnalyze);
+  setCheckbox('enable-regular-videos', currentSettings.enableRegularVideos);
+  setCheckbox('enable-shorts', currentSettings.enableShorts);
+  setCheckbox('enable-alternatives', currentSettings.enableAlternatives);
+  setCheckbox('enable-ai-tutorials', currentSettings.enableAITutorials);
+  setCheckbox('enable-ai-entertainment', currentSettings.enableAIEntertainment);
+  setCheckbox('enable-reminders', currentSettings.enableReminders);
+  setCheckbox('enable-end-alert', currentSettings.enableEndAlert);
+  setCheckbox('enable-sound', currentSettings.enableSound);
+  setCheckbox('enable-visual-effects', currentSettings.enableVisualEffects);
+  setCheckbox('enable-analytics', currentSettings.enableAnalytics);
+  setCheckbox('enable-cache', currentSettings.enableCache);
+  
+  // Selects
+  setSelect('banner-style', currentSettings.bannerStyle);
+  setSelect('auto-dismiss', currentSettings.autoDismiss);
+  setSelect('ai-sensitivity', currentSettings.aiSensitivity);
+  setSelect('safety-sensitivity', currentSettings.safetySensitivity);
+}
+
+function setCheckbox(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.checked = value;
+}
+
+function setSelect(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value;
+}
+
+// Escape HTML to prevent XSS - defined early for use in trusted channels
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Save user settings
 async function saveSettings() {
   currentSettings = {
-    enableSafety: elements.enableSafety.checked,
-    enableAIDetection: elements.enableAIDetection.checked,
-    enableAlternatives: elements.enableAlternatives.checked,
-    enableAIOptions: elements.enableAIOptions.checked,
-    autoAnalyze: elements.autoAnalyze.checked,
-    bannerStyle: document.querySelector('input[name="banner-style"]:checked')?.value || 'minimal'
+    // Detection
+    enableSafety: document.getElementById('enable-safety')?.checked ?? true,
+    enableAIDetection: document.getElementById('enable-ai-detection')?.checked ?? true,
+    autoAnalyze: document.getElementById('auto-analyze')?.checked ?? true,
+    
+    // Video Types
+    enableRegularVideos: document.getElementById('enable-regular-videos')?.checked ?? true,
+    enableShorts: document.getElementById('enable-shorts')?.checked ?? true,
+    
+    // Suggestions
+    enableAlternatives: document.getElementById('enable-alternatives')?.checked ?? true,
+    enableAITutorials: document.getElementById('enable-ai-tutorials')?.checked ?? true,
+    enableAIEntertainment: document.getElementById('enable-ai-entertainment')?.checked ?? true,
+    
+    // Banner Behavior
+    bannerStyle: document.getElementById('banner-style')?.value || 'modal',
+    autoDismiss: parseInt(document.getElementById('auto-dismiss')?.value || '0'),
+    enableReminders: document.getElementById('enable-reminders')?.checked ?? true,
+    enableEndAlert: document.getElementById('enable-end-alert')?.checked ?? true,
+    
+    // Alerts
+    enableSound: document.getElementById('enable-sound')?.checked ?? false,
+    enableVisualEffects: document.getElementById('enable-visual-effects')?.checked ?? true,
+    
+    // Sensitivity
+    aiSensitivity: document.getElementById('ai-sensitivity')?.value || 'medium',
+    safetySensitivity: document.getElementById('safety-sensitivity')?.value || 'medium',
+    
+    // Privacy
+    enableAnalytics: document.getElementById('enable-analytics')?.checked ?? false,
+    enableCache: document.getElementById('enable-cache')?.checked ?? true,
+    
+    // Keep trusted channels
+    trustedChannels: currentSettings.trustedChannels || DEFAULT_SETTINGS.trustedChannels
   };
   
   try {
@@ -165,7 +287,7 @@ async function saveSettings() {
     }
     
     // Show brief confirmation
-    showSettingsSaved();
+    showSavedIndicator();
   } catch (error) {
     console.error('Failed to save settings:', error);
   }
@@ -173,34 +295,136 @@ async function saveSettings() {
 
 // Reset settings to defaults
 async function resetSettings() {
+  if (!confirm('Reset all settings to defaults?')) return;
+  
   currentSettings = { ...DEFAULT_SETTINGS };
-  
-  // Apply to UI
-  elements.enableSafety.checked = currentSettings.enableSafety;
-  elements.enableAIDetection.checked = currentSettings.enableAIDetection;
-  elements.enableAlternatives.checked = currentSettings.enableAlternatives;
-  elements.enableAIOptions.checked = currentSettings.enableAIOptions;
-  elements.autoAnalyze.checked = currentSettings.autoAnalyze;
-  document.querySelector('input[name="banner-style"][value="minimal"]').checked = true;
-  
+  applySettingsToUI();
+  renderTrustedChannels();
   await saveSettings();
 }
 
-// Show saved confirmation
-function showSettingsSaved() {
-  const btn = elements.resetSettings;
-  const originalText = btn.textContent;
-  btn.textContent = '✓ Settings Saved';
-  btn.style.background = 'rgba(0, 212, 255, 0.2)';
-  btn.style.borderColor = 'rgba(0, 212, 255, 0.3)';
-  btn.style.color = '#00d4ff';
+// Export settings to JSON
+function exportSettings() {
+  const dataStr = JSON.stringify(currentSettings, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
   
-  setTimeout(() => {
-    btn.textContent = originalText;
-    btn.style.background = '';
-    btn.style.borderColor = '';
-    btn.style.color = '';
-  }, 1500);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'youtube-safety-inspector-settings.json';
+  a.click();
+  
+  URL.revokeObjectURL(url);
+}
+
+// Import settings from JSON
+function importSettings() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      const imported = JSON.parse(text);
+      currentSettings = { ...DEFAULT_SETTINGS, ...imported };
+      applySettingsToUI();
+      renderTrustedChannels();
+      await saveSettings();
+      alert('Settings imported successfully!');
+    } catch (error) {
+      alert('Failed to import settings: ' + error.message);
+    }
+  };
+  
+  input.click();
+}
+
+// Trusted Channels Management
+function renderTrustedChannels() {
+  const list = document.getElementById('trusted-channels-list');
+  if (!list) return;
+  
+  const channels = currentSettings.trustedChannels || [];
+  
+  if (channels.length === 0) {
+    list.innerHTML = '<div class="trusted-empty">No trusted channels. Add some below!</div>';
+    return;
+  }
+  
+  list.innerHTML = channels.map(channel => `
+    <div class="trusted-item">
+      <span>${escapeHtml(channel)}</span>
+      <button class="remove-btn" data-channel="${escapeHtml(channel)}">✕</button>
+    </div>
+  `).join('');
+  
+  // Add remove listeners
+  list.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => removeTrustedChannel(btn.dataset.channel));
+  });
+}
+
+function addTrustedChannel() {
+  const input = document.getElementById('new-trusted-channel');
+  const channel = input.value.trim();
+  
+  if (!channel) return;
+  if (currentSettings.trustedChannels.includes(channel)) {
+    alert('Channel already in list');
+    return;
+  }
+  
+  currentSettings.trustedChannels.push(channel);
+  input.value = '';
+  renderTrustedChannels();
+  saveSettings();
+}
+
+function removeTrustedChannel(channel) {
+  currentSettings.trustedChannels = currentSettings.trustedChannels.filter(c => c !== channel);
+  renderTrustedChannels();
+  saveSettings();
+}
+
+// Show saved indicator
+function showSavedIndicator() {
+  const indicator = document.createElement('div');
+  indicator.textContent = '✓ Saved';
+  indicator.style.cssText = `
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 212, 255, 0.9);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 9999;
+    animation: fadeInOut 1.5s ease;
+  `;
+  
+  // Add animation keyframes if not exists
+  if (!document.getElementById('saved-animation-style')) {
+    const style = document.createElement('style');
+    style.id = 'saved-animation-style';
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateY(-10px); }
+        20% { opacity: 1; transform: translateY(0); }
+        80% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-10px); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(indicator);
+  setTimeout(() => indicator.remove(), 1500);
 }
 
 // Get current tab and analyze if YouTube
@@ -270,37 +494,39 @@ function displayResults(results) {
   
   // Update score
   const score = results.safety_score || 0;
-  elements.scoreValue.textContent = score;
-  elements.scoreCircle.style.setProperty('--score-deg', `${score * 3.6}deg`);
+  if (elements.scoreValue) elements.scoreValue.textContent = score;
+  if (elements.scoreCircle) elements.scoreCircle.style.setProperty('--score-deg', `${score * 3.6}deg`);
   
   // Set score color class
-  elements.scoreCircle.classList.remove('danger', 'warning', 'safe');
+  elements.scoreCircle?.classList.remove('danger', 'warning', 'safe');
   if (score < 40) {
-    elements.scoreCircle.classList.add('danger');
-    elements.scoreLabel.textContent = 'DANGER';
+    elements.scoreCircle?.classList.add('danger');
+    if (elements.scoreLabel) elements.scoreLabel.textContent = 'DANGER';
   } else if (score < 70) {
-    elements.scoreCircle.classList.add('warning');
-    elements.scoreLabel.textContent = 'CAUTION';
+    elements.scoreCircle?.classList.add('warning');
+    if (elements.scoreLabel) elements.scoreLabel.textContent = 'CAUTION';
   } else {
-    elements.scoreCircle.classList.add('safe');
-    elements.scoreLabel.textContent = 'SAFE';
+    elements.scoreCircle?.classList.add('safe');
+    if (elements.scoreLabel) elements.scoreLabel.textContent = 'SAFE';
   }
   
   // Display warnings
   if (results.warnings && results.warnings.length > 0) {
-    elements.warningsSection.classList.remove('hidden');
-    elements.warningsList.innerHTML = results.warnings.map(warning => `
-      <li>
-        <span class="warning-severity ${warning.severity}">${warning.severity}</span>
-        ${escapeHtml(warning.message)}
-      </li>
-    `).join('');
+    elements.warningsSection?.classList.remove('hidden');
+    if (elements.warningsList) {
+      elements.warningsList.innerHTML = results.warnings.map(warning => `
+        <li>
+          <span class="warning-severity ${warning.severity}">${warning.severity}</span>
+          ${escapeHtml(warning.message)}
+        </li>
+      `).join('');
+    }
   } else {
-    elements.warningsSection.classList.add('hidden');
+    elements.warningsSection?.classList.add('hidden');
   }
   
   // Display categories
-  if (results.categories) {
+  if (results.categories && elements.categoriesList) {
     elements.categoriesList.innerHTML = Object.entries(results.categories).map(([name, data]) => `
       <div class="category-badge ${data.flagged ? 'flagged' : 'safe'}">
         <span class="emoji">${data.emoji || '📋'}</span>
@@ -312,23 +538,23 @@ function displayResults(results) {
 
 // Show/hide state views
 function showState(state) {
-  elements.loading.classList.add('hidden');
-  elements.notYoutube.classList.add('hidden');
-  elements.results.classList.add('hidden');
-  elements.error.classList.add('hidden');
+  elements.loading?.classList.add('hidden');
+  elements.notYoutube?.classList.add('hidden');
+  elements.results?.classList.add('hidden');
+  elements.error?.classList.add('hidden');
   
   switch (state) {
     case 'loading':
-      elements.loading.classList.remove('hidden');
+      elements.loading?.classList.remove('hidden');
       break;
     case 'not-youtube':
-      elements.notYoutube.classList.remove('hidden');
+      elements.notYoutube?.classList.remove('hidden');
       break;
     case 'results':
-      elements.results.classList.remove('hidden');
+      elements.results?.classList.remove('hidden');
       break;
     case 'error':
-      elements.error.classList.remove('hidden');
+      elements.error?.classList.remove('hidden');
       break;
   }
 }
@@ -336,7 +562,7 @@ function showState(state) {
 // Show error state
 function showError(message) {
   showState('error');
-  elements.errorMessage.textContent = message;
+  if (elements.errorMessage) elements.errorMessage.textContent = message;
 }
 
 // Open full report in new tab
@@ -346,11 +572,4 @@ function openFullReport() {
       url: `${API_BASE_URL}/report/${currentVideoId}`
     });
   }
-}
-
-// Escape HTML to prevent XSS
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }

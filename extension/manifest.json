@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Safety Inspector",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Analyzes YouTube videos for potentially dangerous or misleading content, AI detection, and suggests safe alternatives",
   "permissions": [
     "activeTab",

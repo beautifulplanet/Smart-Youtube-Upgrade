@@ -1,15 +1,29 @@
-# YouTube Safety Inspector v2 🛡️
+# YouTube Safety Inspector v2.0 🛡️
 
 YouTube-native safety assistant that flags risky or AI-generated content, and helps users pivot to safer, high‑quality alternatives — without breaking the watching flow.
 
-## What’s New in v2
+## What's New in v2.0
 
+### 🎛️ Comprehensive Settings Panel
+- **15+ configurable options** via gear icon in popup
+- Detection toggles: Safety warnings, AI detection, Auto-analyze
+- Video type filters: Regular videos, Shorts
+- Suggestion controls: Real alternatives, AI tutorials, AI entertainment
+- Banner behavior: Modal/Corner/Bar styles, auto-dismiss timer
+- Alert options: Sound alerts, visual effects, periodic reminders
+- Sensitivity levels: Low/Medium/High for AI and safety detection
+- **Trusted channels list**: Add/remove channels that bypass AI warnings
+- Privacy options: Analytics opt-in, result caching
+- Export/Import settings as JSON
+- Reset to defaults
+
+### 🔧 Core Features
 - AI content detection from community comments and optional vision analysis
 - Trusted channel bypass (BBC Earth, Nat Geo, Discovery, etc.)
 - Ad detection to avoid overlaying banners during ads
 - Smart animal detection (e.g., raccoon vs dog) with targeted real‑animal alternatives
 - YouTube‑styled modal with video grid and badges
-- New “Interested in AI?” options: learn to make AI videos (tutorials) or watch curated AI content
+- "Interested in AI?" options: learn to make AI videos (tutorials) or watch curated AI content
 - Shorts vs Long‑form toggle for AI content discovery
 
 ## Architecture
@@ -65,12 +79,34 @@ python main.py
 
 - Navigate to any YouTube video or Shorts
 - The extension automatically analyzes the video (via background API call)
+- Click the **extension icon** to see safety score and details
+- Click the **⚙️ gear icon** to access settings
 - If AI content is detected:
   - A YouTube‑styled modal appears with real alternatives
   - Bottom section offers:
-    - “🎓 Learn to Make AI Videos” (tutorials)
-    - “🎨 Watch More AI Content” (curated entertainment)
+    - "🎓 Learn to Make AI Videos" (tutorials)
+    - "🎨 Watch More AI Content" (curated entertainment)
     - Format toggle: 📺 Long‑form / ⚡ Shorts
+
+## Settings Overview
+
+| Setting | Description |
+|---------|-------------|
+| Safety Warnings | Detect dangerous DIY, medical, cooking content |
+| AI Detection | Flag AI-generated or fake videos |
+| Auto-Analyze | Automatically check videos on page load |
+| Regular Videos | Analyze standard YouTube videos |
+| Shorts | Analyze YouTube Shorts |
+| Real Alternatives | Suggest real videos from trusted channels |
+| AI Tutorials | Show "Learn to make AI" section |
+| AI Entertainment | Show quality AI content suggestions |
+| Banner Style | Modal (center), Corner badge, or Top bar |
+| Auto-Dismiss | Auto-hide banner after 10s/30s/60s or never |
+| Sound Alerts | Play sound when AI/danger detected |
+| Visual Effects | Animated borders and highlights |
+| Sensitivity | Low/Medium/High strictness levels |
+| Trusted Channels | Channels that bypass AI warnings |
+| Cache Results | Remember analysis for faster loading |
 
 ## Configuration
 

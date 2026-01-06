@@ -384,13 +384,90 @@ class SafeAlternativesFinder:
             "message": "🦁 Watch REAL animal videos instead!"
         }
     
+    # Fallback curated videos - using YouTube search links for reliability
+    FALLBACK_TUTORIALS = [
+        {"id": "sora-tutorial", "title": "How To Use OpenAI Sora - Tutorials", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/HBxn56l9WcU/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=how+to+use+openai+sora+tutorial+2024", "badge": "🎓 Sora"},
+        {"id": "runway-tutorial", "title": "Runway Gen-3 Tutorial - AI Video", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/NXpdyAWLDas/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=runway+gen+3+alpha+tutorial", "badge": "🎓 Runway"},
+        {"id": "pika-tutorial", "title": "Pika Labs AI Video Tutorial", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/hHvSNtYaYlY/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=pika+labs+ai+video+tutorial", "badge": "🎓 Pika"},
+        {"id": "kling-tutorial", "title": "Kling AI Tutorial - Create Videos", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/HK6y8DAPN_0/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=kling+ai+video+tutorial", "badge": "🎓 Kling"},
+        {"id": "luma-tutorial", "title": "Luma Dream Machine Tutorial", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/6bk2E-XCLSY/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=luma+dream+machine+ai+tutorial", "badge": "🎓 Luma"},
+        {"id": "sd-video", "title": "Stable Diffusion Video - Full Guide", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/jDi2DLqkocU/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=stable+diffusion+video+animation+tutorial", "badge": "🎓 Tutorial"},
+        {"id": "ai-tools", "title": "Best AI Video Tools 2024", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/xqxB4VPoyK0/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=best+ai+video+generator+tools+2024", "badge": "🎓 Tools"},
+        {"id": "ai-basics", "title": "How AI Video Generation Works", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/aircAruvnKk/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=how+ai+video+generation+works+explained", "badge": "🎓 Learn"},
+    ]
+    
+    FALLBACK_ENTERTAINMENT = [
+        {"id": "sora-showcase", "title": "OpenAI Sora - Best Examples", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/HBxn56l9WcU/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=openai+sora+best+examples+showcase", "badge": "🤖 Sora"},
+        {"id": "ai-videos-2024", "title": "Best AI Generated Videos 2024", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/4wtk26eFCJM/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=best+ai+generated+videos+2024", "badge": "🤖 AI"},
+        {"id": "runway-showcase", "title": "Runway AI - Amazing Creations", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/IRDgJ0yRbeY/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=runway+ai+video+showcase+amazing", "badge": "🤖 Runway"},
+        {"id": "ai-art-video", "title": "AI Art to Video - Incredible Results", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/3CRkNJ2Jk2Q/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=ai+art+to+video+midjourney+animation", "badge": "🎨 Art"},
+        {"id": "ai-short-films", "title": "AI Generated Short Films", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/qArnCdUGkOE/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=ai+generated+short+film+2024", "badge": "🎬 Films"},
+        {"id": "ai-music-video", "title": "AI Music Videos - Creative", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/aircAruvnKk/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=ai+generated+music+video+2024", "badge": "🎵 Music"},
+    ]
+    
+    # Real animal videos by animal type - YouTube search links for reliability
+    FALLBACK_REAL_ANIMALS = {
+        "dog": [
+            {"id": "dog-bbc", "title": "Dogs - BBC Earth Documentary", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/3GRSbr0EYYU/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=dogs+bbc+earth+documentary", "badge": "✓ BBC", "is_trusted": True},
+            {"id": "dog-dodo", "title": "Amazing Dog Rescues - The Dodo", "channel": "The Dodo", "thumbnail": "https://i.ytimg.com/vi/bxHFBnfudUo/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=the+dodo+dog+rescue+stories", "badge": "✓ Dodo", "is_trusted": True},
+            {"id": "dog-natgeo", "title": "Dogs - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/3uKwQDLgjQ0/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=national+geographic+dogs+documentary", "badge": "✓ NatGeo", "is_trusted": True},
+            {"id": "dog-planet", "title": "Dogs 101 - Animal Planet", "channel": "Animal Planet", "thumbnail": "https://i.ytimg.com/vi/qiJaeQ8r5IY/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=dogs+101+animal+planet", "badge": "✓ Real", "is_trusted": True},
+        ],
+        "cat": [
+            {"id": "cat-bbc", "title": "Cats - BBC Documentary", "channel": "BBC", "thumbnail": "https://i.ytimg.com/vi/sI8NsYIyQ2A/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=cats+bbc+documentary", "badge": "✓ BBC", "is_trusted": True},
+            {"id": "cat-natgeo", "title": "Big Cats - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/cbP2N1BQdYc/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=big+cats+national+geographic", "badge": "✓ NatGeo", "is_trusted": True},
+            {"id": "cat-dodo", "title": "Cat Rescues - The Dodo", "channel": "The Dodo", "thumbnail": "https://i.ytimg.com/vi/Ox7HW8dG1_M/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=the+dodo+cat+rescue", "badge": "✓ Dodo", "is_trusted": True},
+            {"id": "cat-planet", "title": "Cats 101 - Animal Planet", "channel": "Animal Planet", "thumbnail": "https://i.ytimg.com/vi/hY7m5jjJ9mM/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=cats+101+animal+planet", "badge": "✓ Real", "is_trusted": True},
+        ],
+        "lion": [
+            {"id": "lion-natgeo", "title": "Lions - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/aPLXWiwMo6Y/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=lions+national+geographic+documentary", "badge": "✓ NatGeo", "is_trusted": True},
+            {"id": "lion-bbc", "title": "Lions - BBC Earth", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/TBAj8fgHxHE/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=lions+bbc+earth+documentary", "badge": "✓ BBC", "is_trusted": True},
+            {"id": "lion-discovery", "title": "Lion Pride - Discovery", "channel": "Discovery", "thumbnail": "https://i.ytimg.com/vi/rv8kOzRZK8g/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=lion+pride+discovery+channel", "badge": "✓ Discovery", "is_trusted": True},
+            {"id": "lion-smithsonian", "title": "African Lions - Smithsonian", "channel": "Smithsonian", "thumbnail": "https://i.ytimg.com/vi/MsJamQDzL2s/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=african+lions+smithsonian+channel", "badge": "✓ Verified", "is_trusted": True},
+        ],
+        "elephant": [
+            {"id": "elephant-natgeo", "title": "Elephants - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/aMJToCAqCvk/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=elephants+national+geographic+documentary", "badge": "✓ NatGeo", "is_trusted": True},
+            {"id": "elephant-bbc", "title": "Baby Elephants - BBC Earth", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/h0gHpFd4rvo/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=baby+elephants+bbc+earth", "badge": "✓ BBC", "is_trusted": True},
+            {"id": "elephant-discovery", "title": "Elephant Intelligence - Discovery", "channel": "Discovery", "thumbnail": "https://i.ytimg.com/vi/cPZv5CwXdGM/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=elephant+intelligence+discovery+documentary", "badge": "✓ Discovery", "is_trusted": True},
+        ],
+        "bird": [
+            {"id": "bird-bbc", "title": "Birds of Paradise - BBC Earth", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/9RArGl2vkGI/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=birds+of+paradise+bbc+earth", "badge": "✓ BBC", "is_trusted": True},
+            {"id": "bird-natgeo", "title": "Eagles - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/W7QZnwKqopo/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=eagles+national+geographic+documentary", "badge": "✓ NatGeo", "is_trusted": True},
+            {"id": "bird-smithsonian", "title": "Hummingbirds - Smithsonian", "channel": "Smithsonian", "thumbnail": "https://i.ytimg.com/vi/SvjSP2xYZm8/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=hummingbirds+smithsonian+channel", "badge": "✓ Verified", "is_trusted": True},
+        ],
+        "fish": [
+            {"id": "fish-bbc", "title": "Ocean Life - BBC Blue Planet", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/r7NMnAuqHtA/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=blue+planet+bbc+documentary", "badge": "✓ BBC", "is_trusted": True},
+            {"id": "fish-natgeo", "title": "Sharks - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/lKQiVHaFvvs/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=sharks+national+geographic+documentary", "badge": "✓ NatGeo", "is_trusted": True},
+            {"id": "fish-ocean", "title": "Deep Ocean Documentary", "channel": "Documentary", "thumbnail": "https://i.ytimg.com/vi/AELk7a9lLqw/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=deep+ocean+documentary+full", "badge": "✓ Real", "is_trusted": True},
+        ],
+        "default": [
+            {"id": "wildlife-bbc", "title": "Planet Earth II - BBC", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/nlYlNF30bVg/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=planet+earth+2+bbc+clips", "badge": "✓ BBC", "is_trusted": True},
+            {"id": "wildlife-netflix", "title": "Our Planet - Netflix", "channel": "Netflix", "thumbnail": "https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=our+planet+netflix+full+episode", "badge": "✓ Netflix", "is_trusted": True},
+            {"id": "wildlife-dodo", "title": "Animal Rescues - The Dodo", "channel": "The Dodo", "thumbnail": "https://i.ytimg.com/vi/darSMsJ_8Mc/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=the+dodo+animal+rescue+compilation", "badge": "✓ Dodo", "is_trusted": True},
+            {"id": "wildlife-natgeo", "title": "Wildlife - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/7Kf7ItfKAD0/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=national+geographic+wildlife+documentary", "badge": "✓ NatGeo", "is_trusted": True},
+            {"id": "wildlife-nature", "title": "Nature Documentary - PBS", "channel": "PBS Nature", "thumbnail": "https://i.ytimg.com/vi/WmVLcj-XKnM/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=pbs+nature+documentary+full", "badge": "✓ PBS", "is_trusted": True},
+            {"id": "wildlife-smithsonian", "title": "Amazing Animals - Smithsonian", "channel": "Smithsonian", "thumbnail": "https://i.ytimg.com/vi/CbzV6i4JazU/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=smithsonian+channel+animals+documentary", "badge": "✓ Verified", "is_trusted": True},
+        ]
+    }
+    
+    # Keep old fallback for backwards compatibility
+    FALLBACK_REAL_VIDEOS = FALLBACK_REAL_ANIMALS["default"]
+    
     async def find_ai_tutorials(self, detected_subject: str = None, prefer_shorts: bool = False, max_results: int = 8) -> dict:
         """
         Find tutorials on HOW TO MAKE AI videos
         Great for creators who want to learn the craft
         """
+        # Return fallback videos if API not available
         if not self.enabled:
-            return {"enabled": False, "alternatives": [], "message": "API not configured"}
+            return {
+                "enabled": True,
+                "alternatives": self.FALLBACK_TUTORIALS[:max_results],
+                "category_type": "ai_tutorials", 
+                "message": "🎓 Learn to create AI videos! (curated picks)",
+                "detected_subject": detected_subject,
+                "is_shorts": prefer_shorts
+            }
         
         # AI video creation tutorial search queries - high engagement content
         ai_tutorial_searches = []
@@ -452,6 +529,10 @@ class SafeAlternativesFinder:
             if len(alternatives) >= max_results:
                 break
         
+        # Fall back to curated list if search returns nothing
+        if not alternatives:
+            alternatives = self.FALLBACK_TUTORIALS[:max_results]
+        
         subject_text = f" {detected_subject}" if detected_subject else ""
         format_text = "Shorts" if prefer_shorts else "tutorials"
         
@@ -469,8 +550,16 @@ class SafeAlternativesFinder:
         Find quality AI entertainment content for users who WANT to watch AI videos
         Curated, high-quality AI content creators
         """
+        # Return fallback videos if API not available
         if not self.enabled:
-            return {"enabled": False, "alternatives": [], "message": "API not configured"}
+            return {
+                "enabled": True,
+                "alternatives": self.FALLBACK_ENTERTAINMENT[:max_results],
+                "category_type": "ai_entertainment",
+                "message": "🎨 Quality AI content (curated picks)",
+                "detected_subject": detected_subject,
+                "is_shorts": prefer_shorts
+            }
         
         # Quality AI content creators and searches
         ai_entertainment_searches = []
@@ -529,6 +618,10 @@ class SafeAlternativesFinder:
             
             if len(alternatives) >= max_results:
                 break
+        
+        # Fall back to curated list if search returns nothing
+        if not alternatives:
+            alternatives = self.FALLBACK_ENTERTAINMENT[:max_results]
         
         subject_text = f" {detected_subject}" if detected_subject else ""
         format_text = "Shorts" if prefer_shorts else "videos"

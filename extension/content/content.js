@@ -4,14 +4,14 @@
  * Licensed under MIT License
  * 
  * Auto-shows warning overlay for dangerous videos + AI content detection
- * VERSION: 2.0 - Fixed ad detection for Shorts
+ * VERSION: 3.0 - New tabbed UI with YouTube styling
  * 
  * Data provided by YouTube Data API
  * https://developers.google.com/youtube
  */
 
 console.log('🛡️ ========================================');
-console.log('🛡️ YouTube Safety Inspector v2.0 LOADED!');
+console.log('🛡️ YouTube Safety Inspector v3.0 LOADED!');
 console.log('🛡️ URL:', location.href);
 console.log('🛡️ Is Shorts:', location.pathname.includes('/shorts/'));
 console.log('🛡️ ========================================');
@@ -28,14 +28,42 @@ let aiFlashInterval = null;
 let aiContentDetected = false;
 let lastAnalyzedVideoId = null;
 
-// User settings (loaded from chrome.storage)
+// User settings (loaded from chrome.storage) - comprehensive defaults
 let userSettings = {
+  // Detection
   enableSafety: true,
   enableAIDetection: true,
-  enableAlternatives: true,
-  enableAIOptions: true,
   autoAnalyze: true,
-  bannerStyle: 'minimal'
+  
+  // Video Types
+  enableRegularVideos: true,
+  enableShorts: true,
+  
+  // Suggestions
+  enableAlternatives: true,
+  enableAITutorials: true,
+  enableAIEntertainment: true,
+  
+  // Banner Behavior
+  bannerStyle: 'modal',
+  autoDismiss: 0,
+  enableReminders: true,
+  enableEndAlert: true,
+  
+  // Alerts
+  enableSound: false,
+  enableVisualEffects: true,
+  
+  // Sensitivity
+  aiSensitivity: 'medium',
+  safetySensitivity: 'medium',
+  
+  // Privacy
+  enableAnalytics: false,
+  enableCache: true,
+  
+  // Trusted Channels
+  trustedChannels: ['National Geographic', 'BBC Earth', 'The Dodo', 'Discovery', 'Smithsonian Channel', 'PBS Nature']
 };
 
 // Load settings immediately
@@ -78,6 +106,23 @@ setTimeout(() => {
   checkVideo();
 }, 1000);
 
+// Check if we should analyze based on video type settings
+function shouldAnalyzeVideoType() {
+  const isShorts = location.pathname.includes('/shorts/');
+  
+  if (isShorts && !userSettings.enableShorts) {
+    console.log('🛡️ Shorts detection disabled in settings');
+    return false;
+  }
+  
+  if (!isShorts && !userSettings.enableRegularVideos) {
+    console.log('🛡️ Regular video detection disabled in settings');
+    return false;
+  }
+  
+  return true;
+}
+
 // Also check on navigation
 let lastUrl = location.href;
 let lastVideoId = null;
@@ -97,9 +142,12 @@ setInterval(() => {
     lastAnalyzedVideoId = null;
     stopPeriodicAIFlash();
     hideAllOverlays();
-    checkVideo();
+    
+    // Check if we should analyze this video type
+    if (shouldAnalyzeVideoType()) {
+      checkVideo();
+    }
   }
-  
   // ONLY check for ads on regular videos - NEVER on Shorts
   if (!isShorts) {
     const adPlaying = isAdPlaying();
@@ -318,7 +366,7 @@ function injectAIBanner() {
   const existing = document.getElementById('ai-content-banner');
   if (existing) existing.remove();
 
-  // Create YouTube-styled AI content panel
+  // Create YouTube-styled AI content panel - LARGER with tabs
   const banner = document.createElement('div');
   banner.id = 'ai-content-banner';
   banner.style.cssText = `
@@ -334,9 +382,9 @@ function injectAIBanner() {
     font-family: "YouTube Sans", "Roboto", sans-serif;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
     animation: yt-modal-in 0.3s ease-out;
-    max-width: 800px;
-    width: 90vw;
-    max-height: 85vh;
+    max-width: 1000px;
+    width: 95vw;
+    max-height: 90vh;
     overflow: hidden;
   `;
 
@@ -347,29 +395,71 @@ function injectAIBanner() {
         to { opacity: 1; transform: translate(-50%, -50%) scale(1); } 
       }
       
-      /* YouTube-style video grid */
+      /* YouTube-style tabs */
+      .yt-tabs {
+        display: flex;
+        padding: 0 20px;
+        border-bottom: 1px solid #272727;
+        gap: 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      
+      .yt-tabs::-webkit-scrollbar { display: none; }
+      
+      .yt-tab {
+        padding: 12px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #aaa;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+        position: relative;
+        transition: color 0.2s;
+      }
+      
+      .yt-tab:hover { color: #fff; }
+      
+      .yt-tab.active {
+        color: #fff;
+      }
+      
+      .yt-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: #f1f1f1;
+        border-radius: 3px 3px 0 0;
+      }
+      
+      .yt-tab-icon { margin-right: 8px; }
+      
+      /* Tab content panels */
+      .yt-tab-content {
+        display: none;
+        padding: 0;
+      }
+      
+      .yt-tab-content.active { display: block; }
+      
+      /* YouTube-style video grid - LARGER */
       .yt-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
         gap: 16px;
-        padding: 16px;
-        max-height: 400px;
+        padding: 16px 20px;
+        max-height: 55vh;
         overflow-y: auto;
       }
       
-      .yt-grid::-webkit-scrollbar {
-        width: 8px;
-      }
-      
-      .yt-grid::-webkit-scrollbar-track {
-        background: #272727;
-        border-radius: 4px;
-      }
-      
-      .yt-grid::-webkit-scrollbar-thumb {
-        background: #717171;
-        border-radius: 4px;
-      }
+      .yt-grid::-webkit-scrollbar { width: 8px; }
+      .yt-grid::-webkit-scrollbar-track { background: #272727; border-radius: 4px; }
+      .yt-grid::-webkit-scrollbar-thumb { background: #717171; border-radius: 4px; }
       
       .yt-video-card {
         cursor: pointer;
@@ -410,7 +500,7 @@ function injectAIBanner() {
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0,0,0,0.6);
+        background: rgba(0,0,0,0.5);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -448,10 +538,9 @@ function injectAIBanner() {
         color: #4CAF50;
       }
       
-      .yt-badge.trusted {
-        background: #065fd4;
-        color: white;
-      }
+      .yt-badge.trusted { background: #065fd4; color: white; }
+      .yt-badge.tutorial { background: #ff9800; color: #000; }
+      .yt-badge.ai { background: linear-gradient(135deg, #ff6b6b, #ff8e53); color: #fff; }
       
       .yt-video-info {
         padding: 10px 4px;
@@ -466,7 +555,7 @@ function injectAIBanner() {
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
       }
       
       .yt-channel-name {
@@ -477,18 +566,12 @@ function injectAIBanner() {
         gap: 4px;
       }
       
-      .yt-verified {
-        width: 14px;
-        height: 14px;
-        fill: #aaa;
-      }
-      
       .yt-header {
         padding: 16px 20px;
-        border-bottom: 1px solid #272727;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
       }
       
       .yt-header-left {
@@ -498,14 +581,14 @@ function injectAIBanner() {
       }
       
       .yt-ai-icon {
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 22px;
       }
       
       .yt-header-text h2 {
@@ -538,22 +621,24 @@ function injectAIBanner() {
         color: #fff;
       }
       
-      .yt-section-title {
-        padding: 16px 20px 8px;
-        font-size: 16px;
-        font-weight: 600;
-        color: #f1f1f1;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      
       .yt-footer {
         padding: 12px 20px;
         border-top: 1px solid #272727;
         display: flex;
         gap: 12px;
-        justify-content: flex-end;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .yt-footer-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .yt-footer-right {
+        display: flex;
+        gap: 10px;
       }
       
       .yt-btn {
@@ -576,92 +661,18 @@ function injectAIBanner() {
         border-color: #3ea6ff;
       }
       
-      .yt-btn-primary {
-        background: #3ea6ff;
-        border: none;
-        color: #0f0f0f;
-      }
-      
-      .yt-btn-primary:hover {
-        background: #65b8ff;
-      }
-      
-      /* AI Options Section at Bottom */
-      .yt-ai-options {
-        padding: 16px 20px;
-        background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
-        border-top: 1px solid #272727;
-      }
-      
-      .yt-ai-options-title {
-        font-size: 13px;
-        color: #717171;
-        margin-bottom: 12px;
-        text-align: center;
-      }
-      
-      .yt-ai-options-row {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-      
-      .yt-ai-option-btn {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 16px;
-        background: #272727;
-        border: 1px solid #3a3a3a;
-        border-radius: 20px;
-        color: #e0e0e0;
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      
-      .yt-ai-option-btn:hover {
-        background: #3a3a3a;
-        border-color: #4a4a4a;
-        transform: translateY(-1px);
-      }
-      
-      .yt-ai-option-btn.learn {
-        border-color: #065fd4;
-      }
-      
-      .yt-ai-option-btn.learn:hover {
-        background: rgba(6, 95, 212, 0.2);
-        border-color: #3ea6ff;
-        color: #3ea6ff;
-      }
-      
-      .yt-ai-option-btn.watch {
-        border-color: #ff6b6b;
-      }
-      
-      .yt-ai-option-btn.watch:hover {
-        background: rgba(255, 107, 107, 0.2);
-        border-color: #ff8e53;
-        color: #ff8e53;
-      }
-      
       .yt-format-toggle {
         display: flex;
         gap: 4px;
         padding: 4px;
-        background: #1a1a1a;
-        border-radius: 16px;
-        margin-top: 12px;
-        justify-content: center;
+        background: #272727;
+        border-radius: 20px;
       }
       
       .yt-format-btn {
-        padding: 6px 14px;
+        padding: 6px 12px;
         border: none;
-        border-radius: 12px;
+        border-radius: 16px;
         font-size: 12px;
         font-weight: 500;
         cursor: pointer;
@@ -671,8 +682,8 @@ function injectAIBanner() {
       }
       
       .yt-format-btn.active {
-        background: #272727;
-        color: #f1f1f1;
+        background: #3ea6ff;
+        color: #0f0f0f;
       }
       
       .yt-format-btn:hover:not(.active) {
@@ -682,17 +693,18 @@ function injectAIBanner() {
       /* Loading state */
       .yt-loading {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        padding: 20px;
+        gap: 12px;
+        padding: 60px 20px;
         color: #909090;
       }
       
       .yt-spinner {
-        width: 20px;
-        height: 20px;
-        border: 2px solid #3a3a3a;
+        width: 32px;
+        height: 32px;
+        border: 3px solid #3a3a3a;
         border-top-color: #3ea6ff;
         border-radius: 50%;
         animation: yt-spin 0.8s linear infinite;
@@ -701,6 +713,15 @@ function injectAIBanner() {
       @keyframes yt-spin {
         to { transform: rotate(360deg); }
       }
+      
+      /* Empty state */
+      .yt-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: #717171;
+      }
+      
+      .yt-empty-icon { font-size: 48px; margin-bottom: 12px; }
     </style>
     
     <div class="yt-header">
@@ -708,41 +729,62 @@ function injectAIBanner() {
         <div class="yt-ai-icon">🤖</div>
         <div class="yt-header-text">
           <h2>AI-Generated Content Detected</h2>
-          <p id="ai-banner-message">Community members indicate this may be AI-generated</p>
+          <p id="ai-banner-message">This video appears to contain AI-generated content</p>
         </div>
       </div>
       <button class="yt-close-btn" id="ai-banner-close">✕</button>
     </div>
     
-    <div id="ai-banner-alternatives" style="display: none;">
-      <div class="yt-section-title">
-        <span>🎬</span>
-        <span id="ai-section-title">Watch Real Videos Instead</span>
-      </div>
-      <div class="yt-grid" id="ai-alt-grid"></div>
+    <div class="yt-tabs" id="ai-tabs">
+      <button class="yt-tab active" data-tab="real">
+        <span class="yt-tab-icon">🎬</span>Watch Real Videos
+      </button>
+      <button class="yt-tab" data-tab="tutorials">
+        <span class="yt-tab-icon">🎓</span>Learn to Make AI Videos
+      </button>
+      <button class="yt-tab" data-tab="entertainment">
+        <span class="yt-tab-icon">🎨</span>More AI Content
+      </button>
     </div>
     
-    <!-- AI Content Options Section -->
-    <div class="yt-ai-options" id="ai-options-section">
-      <div class="yt-ai-options-title">🎯 Interested in AI content?</div>
-      <div class="yt-ai-options-row">
-        <button class="yt-ai-option-btn learn" id="ai-learn-btn">
-          <span>🎓</span>
-          <span>Learn to Make AI Videos</span>
-        </button>
-        <button class="yt-ai-option-btn watch" id="ai-watch-more-btn">
-          <span>🎨</span>
-          <span>Watch More AI Content</span>
-        </button>
+    <div class="yt-tab-content active" id="tab-real">
+      <div class="yt-grid" id="grid-real">
+        <div class="yt-loading">
+          <div class="yt-spinner"></div>
+          <span>Finding real videos...</span>
+        </div>
       </div>
-      <div class="yt-format-toggle">
-        <button class="yt-format-btn active" id="ai-format-long">📺 Long-form</button>
-        <button class="yt-format-btn" id="ai-format-shorts">⚡ Shorts</button>
+    </div>
+    
+    <div class="yt-tab-content" id="tab-tutorials">
+      <div class="yt-grid" id="grid-tutorials">
+        <div class="yt-loading">
+          <div class="yt-spinner"></div>
+          <span>Loading AI tutorials...</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="yt-tab-content" id="tab-entertainment">
+      <div class="yt-grid" id="grid-entertainment">
+        <div class="yt-loading">
+          <div class="yt-spinner"></div>
+          <span>Finding AI entertainment...</span>
+        </div>
       </div>
     </div>
     
     <div class="yt-footer">
-      <button class="yt-btn yt-btn-secondary" id="ai-watch-anyway">Watch Anyway</button>
+      <div class="yt-footer-left">
+        <span style="color: #717171; font-size: 12px;">Format:</span>
+        <div class="yt-format-toggle">
+          <button class="yt-format-btn active" id="ai-format-long">📺 Videos</button>
+          <button class="yt-format-btn" id="ai-format-shorts">⚡ Shorts</button>
+        </div>
+      </div>
+      <div class="yt-footer-right">
+        <button class="yt-btn yt-btn-secondary" id="ai-watch-anyway">Watch Anyway</button>
+      </div>
     </div>
   `;
 
@@ -751,6 +793,7 @@ function injectAIBanner() {
   // Store detected subject for API calls
   banner.dataset.detectedSubject = '';
   banner.dataset.preferShorts = 'false';
+  banner.dataset.loadedTabs = '';
 
   document.getElementById('ai-banner-close').onclick = () => {
     banner.style.display = 'none';
@@ -760,6 +803,25 @@ function injectAIBanner() {
     banner.style.display = 'none';
   };
   
+  // Tab switching
+  const tabs = banner.querySelectorAll('.yt-tab');
+  tabs.forEach(tab => {
+    tab.onclick = () => {
+      const tabName = tab.dataset.tab;
+      
+      // Update active tab
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      // Show tab content
+      banner.querySelectorAll('.yt-tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      
+      // Load content if not already loaded
+      loadTabContent(tabName);
+    };
+  });
+  
   // Format toggle handlers
   const longBtn = document.getElementById('ai-format-long');
   const shortsBtn = document.getElementById('ai-format-shorts');
@@ -768,32 +830,143 @@ function injectAIBanner() {
     longBtn.classList.add('active');
     shortsBtn.classList.remove('active');
     banner.dataset.preferShorts = 'false';
+    // Reload current tab
+    reloadCurrentTab();
   };
   
   shortsBtn.onclick = () => {
     shortsBtn.classList.add('active');
     longBtn.classList.remove('active');
     banner.dataset.preferShorts = 'true';
-  };
-  
-  // AI Tutorial button - fetch and show tutorials
-  document.getElementById('ai-learn-btn').onclick = async () => {
-    const subject = banner.dataset.detectedSubject || null;
-    const preferShorts = banner.dataset.preferShorts === 'true';
-    await fetchAndShowAIContent('tutorials', subject, preferShorts);
-  };
-  
-  // AI Entertainment button - fetch and show AI content
-  document.getElementById('ai-watch-more-btn').onclick = async () => {
-    const subject = banner.dataset.detectedSubject || null;
-    const preferShorts = banner.dataset.preferShorts === 'true';
-    await fetchAndShowAIContent('entertainment', subject, preferShorts);
+    // Reload current tab
+    reloadCurrentTab();
   };
 
-  console.log('🛡️ YouTube-styled AI banner injected with AI content options');
+  console.log('🛡️ YouTube-styled AI banner injected with tabs');
 }
 
-// Fetch AI tutorials or entertainment from API
+// Load content for a specific tab
+async function loadTabContent(tabName, forceReload = false) {
+  const banner = document.getElementById('ai-content-banner');
+  if (!banner) return;
+  
+  const loadedTabs = banner.dataset.loadedTabs?.split(',') || [];
+  const preferShorts = banner.dataset.preferShorts === 'true';
+  const subject = banner.dataset.detectedSubject || null;
+  
+  // Skip if already loaded (unless force reload)
+  if (!forceReload && loadedTabs.includes(tabName)) return;
+  
+  const grid = document.getElementById(`grid-${tabName}`);
+  if (!grid) return;
+  
+  // Show loading
+  grid.innerHTML = `
+    <div class="yt-loading" style="grid-column: 1 / -1;">
+      <div class="yt-spinner"></div>
+      <span>Loading ${tabName === 'real' ? 'real videos' : tabName === 'tutorials' ? 'tutorials' : 'AI content'}...</span>
+    </div>
+  `;
+  
+  try {
+    let endpoint, requestBody;
+    
+    if (tabName === 'real') {
+      endpoint = '/real-alternatives';
+      requestBody = { subject, prefer_shorts: preferShorts, max_results: 12 };
+    } else if (tabName === 'tutorials') {
+      endpoint = '/ai-tutorials';
+      requestBody = { subject, prefer_shorts: preferShorts, max_results: 12 };
+    } else if (tabName === 'entertainment') {
+      endpoint = '/ai-entertainment';
+      requestBody = { subject, prefer_shorts: preferShorts, max_results: 12 };
+    }
+    
+    const response = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        action: 'fetchAPI',
+        url: `http://localhost:8000${endpoint}`,
+        method: 'POST',
+        body: requestBody
+      }, response => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response?.error) {
+          reject(new Error(response.error));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+    
+    const alternatives = response.data?.alternatives || [];
+    
+    if (alternatives.length > 0) {
+      grid.innerHTML = alternatives.map(video => createVideoCard(video, tabName)).join('');
+      
+      // Mark tab as loaded
+      if (!loadedTabs.includes(tabName)) {
+        loadedTabs.push(tabName);
+        banner.dataset.loadedTabs = loadedTabs.join(',');
+      }
+    } else {
+      grid.innerHTML = `
+        <div class="yt-empty" style="grid-column: 1 / -1;">
+          <div class="yt-empty-icon">${tabName === 'tutorials' ? '🎓' : '🎨'}</div>
+          <p>No ${tabName} found. Try toggling Shorts/Videos!</p>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error(`Failed to load ${tabName}:`, error);
+    grid.innerHTML = `
+      <div class="yt-empty" style="grid-column: 1 / -1;">
+        <div class="yt-empty-icon">⚠️</div>
+        <p>Couldn't load content. Make sure the backend is running.</p>
+      </div>
+    `;
+  }
+}
+
+// Helper to create video card HTML
+function createVideoCard(video, type = 'real') {
+  const badgeClass = type === 'tutorials' ? 'tutorial' : type === 'entertainment' ? 'ai' : (video.is_trusted ? 'trusted' : '');
+  const badgeText = video.badge || (type === 'tutorials' ? '🎓 Tutorial' : type === 'entertainment' ? '🤖 AI' : '✓ Real');
+  
+  return `
+    <div class="yt-video-card" onclick="window.location.href='${video.url}'">
+      <div class="yt-thumb-container">
+        <img class="yt-thumb" src="${video.thumbnail}" alt="" loading="lazy"
+             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 180%22><rect fill=%22%23272727%22 width=%22320%22 height=%22180%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23717171%22 font-size=%2224%22 text-anchor=%22middle%22 dy=%22.3em%22>🎬</text></svg>'">
+        <div class="yt-thumb-overlay">
+          <div class="yt-play-icon"></div>
+        </div>
+        <span class="yt-badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div class="yt-video-info">
+        <div class="yt-video-title">${escapeHtml(video.title)}</div>
+        <div class="yt-channel-name">${escapeHtml(video.channel)}</div>
+      </div>
+    </div>
+  `;
+}
+
+// Reload current active tab
+function reloadCurrentTab() {
+  const banner = document.getElementById('ai-content-banner');
+  if (!banner) return;
+  
+  const activeTab = banner.querySelector('.yt-tab.active');
+  if (activeTab) {
+    const tabName = activeTab.dataset.tab;
+    // Clear loaded status for this tab
+    const loadedTabs = (banner.dataset.loadedTabs || '').split(',').filter(t => t !== tabName);
+    banner.dataset.loadedTabs = loadedTabs.join(',');
+    loadTabContent(tabName, true);
+  }
+}
+
+// Fetch AI tutorials or entertainment from API (legacy function for backwards compat)
 async function fetchAndShowAIContent(type, subject, preferShorts) {
   const banner = document.getElementById('ai-content-banner');
   const altSection = document.getElementById('ai-banner-alternatives');
@@ -888,75 +1061,38 @@ async function fetchAndShowAIContent(type, subject, preferShorts) {
 function showAIBanner(message, duration = 0, alternatives = [], detectedAnimal = null) {
   const banner = document.getElementById('ai-content-banner');
   const messageEl = document.getElementById('ai-banner-message');
-  const altSection = document.getElementById('ai-banner-alternatives');
-  const altGrid = document.getElementById('ai-alt-grid');
-  const sectionTitle = document.getElementById('ai-section-title');
-  const aiOptionsSection = document.getElementById('ai-options-section');
+  const gridReal = document.getElementById('grid-real');
   
-  if (banner && messageEl) {
-    messageEl.textContent = message || 'Community members indicate this may be AI-generated';
-    
-    // Store detected subject for AI content API calls
-    if (detectedAnimal) {
-      banner.dataset.detectedSubject = detectedAnimal;
-      console.log('🐾 Stored detected subject:', detectedAnimal);
-    }
-    
-    // Show/hide AI options section based on user settings
-    if (aiOptionsSection) {
-      aiOptionsSection.style.display = userSettings.enableAIOptions ? 'block' : 'none';
-    }
-    
-    // Show alternatives in YouTube-style grid if available AND alternatives enabled
-    if (altSection && altGrid && alternatives.length > 0 && userSettings.enableAlternatives) {
-      // Update section title based on detected animal
-      if (sectionTitle) {
-        if (detectedAnimal) {
-          const animalCap = detectedAnimal.charAt(0).toUpperCase() + detectedAnimal.slice(1);
-          sectionTitle.textContent = `Watch Real ${animalCap} Videos Instead`;
-        } else {
-          sectionTitle.textContent = 'Watch Real Videos Instead';
-        }
-      }
-      
-      // Build YouTube-style video cards
-      altGrid.innerHTML = alternatives.map(video => `
-        <div class="yt-video-card" onclick="window.location.href='${video.url}'">
-          <div class="yt-thumb-container">
-            <img class="yt-thumb" src="${video.thumbnail}" alt="" 
-                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 180%22><rect fill=%22%23272727%22 width=%22320%22 height=%22180%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23717171%22 font-size=%2224%22 text-anchor=%22middle%22 dy=%22.3em%22>🎬</text></svg>'">
-            <div class="yt-thumb-overlay">
-              <div class="yt-play-icon"></div>
-            </div>
-            <span class="yt-badge ${video.is_trusted ? 'trusted' : ''}">${video.is_trusted ? '✓ Verified' : '🎬 Real'}</span>
-          </div>
-          <div class="yt-video-info">
-            <div class="yt-video-title">${escapeHtml(video.title)}</div>
-            <div class="yt-channel-name">
-              ${escapeHtml(video.channel)}
-              ${video.is_trusted ? '<svg class="yt-verified" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>' : ''}
-            </div>
-          </div>
-        </div>
-      `).join('');
-      
-      altSection.style.display = 'block';
-      console.log('🎬 Showing', alternatives.length, 'real video alternatives in YouTube grid');
-    } else if (altSection) {
-      altSection.style.display = 'none';
-    }
-    
-    // Add YouTube API attribution to the banner
-    addYouTubeAttribution(banner);
-    
-    banner.style.display = 'block';
-    
-    // Auto-hide after duration (0 = don't auto-hide)
-    if (duration > 0) {
-      setTimeout(() => {
-        banner.style.display = 'none';
-      }, duration);
-    }
+  if (!banner || !messageEl) return;
+  
+  messageEl.textContent = message || 'This video appears to contain AI-generated content';
+  
+  // Store detected subject for API calls
+  if (detectedAnimal) {
+    banner.dataset.detectedSubject = detectedAnimal;
+    console.log('🐾 Stored detected subject:', detectedAnimal);
+  }
+  
+  // Reset loaded tabs for fresh content
+  banner.dataset.loadedTabs = '';
+  
+  // Add YouTube API attribution
+  addYouTubeAttribution(banner);
+  
+  // Show the banner
+  banner.style.display = 'block';
+  
+  // Immediately load all tabs content (don't wait for alternatives to be passed in)
+  console.log('🎬 Loading video tabs...');
+  loadTabContent('real', true);
+  loadTabContent('tutorials', true);
+  loadTabContent('entertainment', true);
+  
+  // Auto-hide after duration (0 = don't auto-hide)
+  if (duration > 0) {
+    setTimeout(() => {
+      banner.style.display = 'none';
+    }, duration);
   }
 }
 
@@ -1262,11 +1398,18 @@ function showResults(results) {
 
   const score = results.safety_score || 0;
   const warnings = results.warnings || [];
-  const isTrustedChannel = results.is_trusted_channel || false;
+  
+  // Check if channel is in user's trusted list (case-insensitive)
+  const channelName = results.channel || getChannelName() || '';
+  const isTrustedChannel = results.is_trusted_channel || 
+    userSettings.trustedChannels?.some(tc => 
+      channelName.toLowerCase().includes(tc.toLowerCase()) ||
+      tc.toLowerCase().includes(channelName.toLowerCase())
+    );
   
   // Skip AI detection for trusted channels (BBC Earth, Nat Geo, etc.)
   if (isTrustedChannel) {
-    console.log('🛡️ Trusted channel:', results.channel, '- skipping AI warnings');
+    console.log('🛡️ Trusted channel:', channelName, '- skipping AI warnings');
   }
   
   // Check for AI content - look for AI category warnings OR vision analysis

@@ -50,7 +50,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(() => sendResponse({ success: false, online: false }));
     return true;
   }
+  
+  // Generic API fetch handler for AI tutorials/entertainment
+  if (message.action === 'fetchAPI') {
+    fetchFromAPI(message.url, message.method, message.body)
+      .then(data => sendResponse({ success: true, data }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
 });
+
+// Generic API fetch function
+async function fetchFromAPI(url, method = 'GET', body = null) {
+  const options = {
+    method,
+    headers: { 'Content-Type': 'application/json' }
+  };
+  
+  if (body && method !== 'GET') {
+    options.body = JSON.stringify(body);
+  }
+  
+  const response = await fetch(url, options);
+  
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+  
+  return await response.json();
+}
 
 // Analyze a video
 async function analyzeVideo(videoId, title = null, description = null, channel = null) {

@@ -63,12 +63,13 @@
         <h2>Settings</h2>
       </div>
       
+      <!-- Core Detection Settings -->
       <div class="settings-section">
-        <h3>🔍 Detection Features</h3>
+        <h3>🔍 Detection</h3>
         <div class="toggle-row">
           <div class="toggle-info">
             <span class="toggle-label">⚠️ Safety Warnings</span>
-            <span class="toggle-desc">Detect dangerous DIY, cooking, fitness content</span>
+            <span class="toggle-desc">Detect dangerous DIY, medical, cooking content</span>
           </div>
           <label class="switch">
             <input type="checkbox" id="enable-safety" checked>
@@ -85,34 +86,10 @@
             <span class="slider"></span>
           </label>
         </div>
-      </div>
-
-      <div class="settings-section">
-        <h3>📺 Display Options</h3>
         <div class="toggle-row">
           <div class="toggle-info">
-            <span class="toggle-label">✅ Show Alternatives</span>
-            <span class="toggle-desc">Suggest safe videos when warnings found</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="enable-alternatives" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="toggle-row">
-          <div class="toggle-info">
-            <span class="toggle-label">🎯 AI Options Section</span>
-            <span class="toggle-desc">Show "Interested in AI?" tutorials & entertainment</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="enable-ai-options" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="toggle-row">
-          <div class="toggle-info">
-            <span class="toggle-label">⚡ Auto-analyze</span>
-            <span class="toggle-desc">Automatically check videos on load</span>
+            <span class="toggle-label">⚡ Auto-Analyze</span>
+            <span class="toggle-desc">Automatically check videos when page loads</span>
           </div>
           <label class="switch">
             <input type="checkbox" id="auto-analyze" checked>
@@ -121,27 +98,224 @@
         </div>
       </div>
 
+      <!-- Video Type Settings -->
       <div class="settings-section">
-        <h3>🎨 Banner Style</h3>
-        <div class="style-options">
-          <label class="style-option">
-            <input type="radio" name="banner-style" value="minimal" checked>
-            <span class="style-preview minimal-preview">
-              <span class="preview-icon">🤖</span>
-              <span>Minimal</span>
-            </span>
+        <h3>📺 Video Types</h3>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">🎬 Regular Videos</span>
+            <span class="toggle-desc">Analyze standard YouTube videos</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-regular-videos" checked>
+            <span class="slider"></span>
           </label>
-          <label class="style-option">
-            <input type="radio" name="banner-style" value="full">
-            <span class="style-preview full-preview">
-              <span class="preview-icon">🤖</span>
-              <span>Full Details</span>
-            </span>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">📱 YouTube Shorts</span>
+            <span class="toggle-desc">Analyze Shorts videos</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-shorts" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Suggestions Settings -->
+      <div class="settings-section">
+        <h3>💡 Suggestions</h3>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">✅ Real Video Alternatives</span>
+            <span class="toggle-desc">Suggest real videos from trusted channels</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-alternatives" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">🎓 AI Tutorials</span>
+            <span class="toggle-desc">Show "Learn to make AI videos" section</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-ai-tutorials" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">🎨 AI Entertainment</span>
+            <span class="toggle-desc">Show quality AI content suggestions</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-ai-entertainment" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Banner Behavior -->
+      <div class="settings-section">
+        <h3>🎯 Banner Behavior</h3>
+        <div class="select-row">
+          <div class="select-info">
+            <span class="select-label">Banner Style</span>
+            <span class="select-desc">How alerts appear on screen</span>
+          </div>
+          <select id="banner-style" class="setting-select">
+            <option value="modal">Modal (Center)</option>
+            <option value="corner">Corner Badge</option>
+            <option value="bar">Top Bar</option>
+          </select>
+        </div>
+        <div class="select-row">
+          <div class="select-info">
+            <span class="select-label">Auto-Dismiss</span>
+            <span class="select-desc">Automatically hide banner after</span>
+          </div>
+          <select id="auto-dismiss" class="setting-select">
+            <option value="0">Never (Manual)</option>
+            <option value="10">10 seconds</option>
+            <option value="30">30 seconds</option>
+            <option value="60">1 minute</option>
+          </select>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">🔔 Periodic Reminders</span>
+            <span class="toggle-desc">Flash AI indicator every 60s during playback</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-reminders" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">🎬 End-of-Video Alert</span>
+            <span class="toggle-desc">Show reminder when video ends</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-end-alert" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Sound & Visual -->
+      <div class="settings-section">
+        <h3>🔊 Alerts</h3>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">🔊 Sound Alerts</span>
+            <span class="toggle-desc">Play sound when AI/danger detected</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-sound">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">✨ Visual Effects</span>
+            <span class="toggle-desc">Animated borders and highlights</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-visual-effects" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Detection Sensitivity -->
+      <div class="settings-section">
+        <h3>🎚️ Sensitivity</h3>
+        <div class="select-row">
+          <div class="select-info">
+            <span class="select-label">AI Detection Level</span>
+            <span class="select-desc">How strict AI detection should be</span>
+          </div>
+          <select id="ai-sensitivity" class="setting-select">
+            <option value="low">Low (Obvious AI only)</option>
+            <option value="medium" selected>Medium (Balanced)</option>
+            <option value="high">High (Sensitive)</option>
+          </select>
+        </div>
+        <div class="select-row">
+          <div class="select-info">
+            <span class="select-label">Safety Warning Level</span>
+            <span class="select-desc">Minimum severity to show warnings</span>
+          </div>
+          <select id="safety-sensitivity" class="setting-select">
+            <option value="all">All Warnings</option>
+            <option value="medium" selected>Medium & High</option>
+            <option value="high">High Only</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Trusted Channels -->
+      <div class="settings-section">
+        <h3>✓ Trusted Channels</h3>
+        <p class="settings-info">Videos from these channels won't trigger AI warnings</p>
+        <div class="trusted-list" id="trusted-channels-list">
+          <!-- Dynamically populated by JavaScript -->
+        </div>
+        <div class="add-trusted">
+          <input type="text" id="new-trusted-channel" placeholder="Add channel name...">
+          <button id="add-trusted-btn" class="btn-small">+ Add</button>
+        </div>
+      </div>
+
+      <!-- Keyboard Shortcuts -->
+      <div class="settings-section">
+        <h3>⌨️ Keyboard Shortcuts</h3>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Dismiss Banner</span>
+          <kbd>Esc</kbd>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Toggle AI Info</span>
+          <kbd>I</kbd>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-label">Quick Analyze</span>
+          <kbd>Shift + A</kbd>
+        </div>
+      </div>
+
+      <!-- Data & Privacy -->
+      <div class="settings-section">
+        <h3>🔒 Privacy</h3>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">📊 Analytics</span>
+            <span class="toggle-desc">Help improve detection (anonymous)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-analytics">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">💾 Cache Results</span>
+            <span class="toggle-desc">Remember analysis for faster loading</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="enable-cache" checked>
+            <span class="slider"></span>
           </label>
         </div>
       </div>
 
       <div class="settings-footer">
+        <button id="export-settings" class="btn-secondary">Export Settings</button>
+        <button id="import-settings" class="btn-secondary">Import Settings</button>
         <button id="reset-settings" class="btn-danger">Reset to Defaults</button>
       </div>
     </div>
@@ -151,7 +325,7 @@
         <span class="status-dot" id="api-status-dot"></span>
         <span id="api-status-text">Checking API...</span>
       </div>
-      <div class="version">v1.1.0</div>
+      <div class="version">v2.0.0</div>
     </footer>
   </div>
 
