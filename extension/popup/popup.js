@@ -1,5 +1,19 @@
-// Configuration
-const API_BASE_URL = 'http://localhost:8000';
+// Configuration - API URL can be overridden in settings for production
+// Default is localhost for development
+const DEFAULT_API_URL = 'http://localhost:8000';
+let API_BASE_URL = DEFAULT_API_URL;
+
+// Load API URL from storage (allows configuration for production)
+async function loadApiUrl() {
+  try {
+    const stored = await chrome.storage.sync.get(['apiBaseUrl']);
+    if (stored.apiBaseUrl) {
+      API_BASE_URL = stored.apiBaseUrl;
+    }
+  } catch (e) {
+    console.warn('Could not load API URL from storage, using default');
+  }
+}
 
 // Default settings - comprehensive list
 const DEFAULT_SETTINGS = {

@@ -7,7 +7,17 @@
  * https://developers.google.com/youtube
  */
 
-const API_BASE_URL = 'http://localhost:8000';
+// Configuration - API URL configurable for production deployment
+const DEFAULT_API_URL = 'http://localhost:8000';
+let API_BASE_URL = DEFAULT_API_URL;
+
+// Load API URL from storage on startup
+chrome.storage.sync.get(['apiBaseUrl'], (result) => {
+  if (result.apiBaseUrl) {
+    API_BASE_URL = result.apiBaseUrl;
+    console.log('🛡️ API URL configured:', API_BASE_URL);
+  }
+});
 
 // Cache for analysis results
 const analysisCache = new Map();
@@ -15,8 +25,25 @@ const analysisCache = new Map();
 // Rate limiting to prevent quota exhaustion
 const rateLimiter = new Map();
 const COOLDOWN_MS = 30000; // 30 seconds between same video analyses
+const DAILY_LIMIT = 100; // Max 100 unique videos per day per user
+let dailyRequestCount = 0;
+let dailyResetDate = new Date().toDateString();
 
 function canAnalyze(videoId) {
+  // Reset daily counter at midnight
+  const today = new Date().toDateString();
+  if (dailyResetDate !== today) {
+    dailyRequestCount = 0;
+    dailyResetDate = today;
+    rateLimiter.clear();
+  }
+  
+  // Check daily limit
+  if (dailyRequestCount >= DAILY_LIMIT) {
+    console.log(`🛡️ Daily limit reached (${DAILY_LIMIT} videos). Try again tomorrow.`);
+    return false;
+  }
+  
   const lastCall = rateLimiter.get(videoId);
   const now = Date.now();
   
@@ -26,6 +53,7 @@ function canAnalyze(videoId) {
   }
   
   rateLimiter.set(videoId, now);
+  dailyRequestCount++;
   return true;
 }
 

@@ -10,12 +10,23 @@ https://developers.google.com/youtube
 """
 
 import os
-from fastapi import FastAPI, HTTPException
+import re
+import time
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from fastapi.responses import HTMLResponse, Response
+from pydantic import BaseModel, field_validator
 from typing import Optional
 import uvicorn
+
+# Security: Video ID validation pattern (11 chars, alphanumeric + hyphen/underscore)
+VIDEO_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_-]{11}$')
+
+def validate_video_id(video_id: str) -> str:
+    """Validate YouTube video ID format to prevent injection attacks"""
+    if not video_id or not VIDEO_ID_PATTERN.match(video_id):
+        raise HTTPException(status_code=400, detail="Invalid video ID format")
+    return video_id
 
 from analyzer import SafetyAnalyzer
 from safety_db import SafetyDatabase
@@ -36,10 +47,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
 # CORS for Chrome extension (restricted to secure origins)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["chrome-extension://*", "http://localhost:*", "http://127.0.0.1:*"],
+    allow_origins=["chrome-extension://*", "http://localhost:*", "http://127.0.0.1:*", "https://localhost:*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -70,18 +91,37 @@ else:
     print("⚠️ Vision analysis disabled (requires OPENAI_API_KEY + yt-dlp + ffmpeg)")
 
 # API Quota Tracking (YouTube daily limit: 10,000)
-import time
+API_QUOTA_LIMIT = 10000
+API_QUOTA_WARN = 9000  # Warn at 90%
 api_quota_tracker = {"count": 0, "date": time.strftime("%Y-%m-%d")}
 
-def log_api_call(cost: int):
-    """Track YouTube API quota usage with daily reset"""
+def check_quota_available(cost: int = 1) -> bool:
+    """Check if API quota is available before making a call"""
     today = time.strftime("%Y-%m-%d")
     if api_quota_tracker["date"] != today:
         api_quota_tracker["count"] = 0
         api_quota_tracker["date"] = today
+    return (api_quota_tracker["count"] + cost) <= API_QUOTA_LIMIT
+
+def log_api_call(cost: int):
+    """Track YouTube API quota usage with daily reset and enforcement"""
+    today = time.strftime("%Y-%m-%d")
+    if api_quota_tracker["date"] != today:
+        api_quota_tracker["count"] = 0
+        api_quota_tracker["date"] = today
+    
+    # Enforce hard limit
+    if api_quota_tracker["count"] + cost > API_QUOTA_LIMIT:
+        raise HTTPException(
+            status_code=429, 
+            detail=f"Daily API quota exceeded ({API_QUOTA_LIMIT}). Try again tomorrow."
+        )
+    
     api_quota_tracker["count"] += cost
-    if api_quota_tracker["count"] > 9000:  # Warn at 90% quota
-        print(f"⚠️ WARNING: {api_quota_tracker['count']}/10000 daily YouTube API quota used!")
+    
+    if api_quota_tracker["count"] > API_QUOTA_WARN:
+        print(f"⚠️ WARNING: {api_quota_tracker['count']}/{API_QUOTA_LIMIT} daily YouTube API quota used!")
+    
     return api_quota_tracker["count"]
 
 # Request/Response models
@@ -91,6 +131,13 @@ class AnalyzeRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     channel: Optional[str] = None
+    
+    @field_validator('video_id')
+    @classmethod
+    def validate_video_id_format(cls, v):
+        if not v or not VIDEO_ID_PATTERN.match(v):
+            raise ValueError('Invalid video ID format (must be 11 characters, alphanumeric with hyphens/underscores)')
+        return v
     
 class Warning(BaseModel):
     category: str

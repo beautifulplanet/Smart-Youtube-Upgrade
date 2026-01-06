@@ -60,11 +60,21 @@ Safety Database (danger signatures + categories)
 1) Backend (FastAPI)
 
 ```powershell
-cd "c:\Users\Elite\Documents\Mega Folder\#3\youtube-safety-inspector\backend"
+cd youtube-safety-inspector/backend
 pip install -r requirements.txt
 $env:YOUTUBE_API_KEY = "<YOUR_YOUTUBE_API_KEY>"
 # Optional (vision analysis): requires OpenAI + yt-dlp + ffmpeg
 # $env:OPENAI_API_KEY = "<YOUR_OPENAI_API_KEY>"
+python main.py
+```
+
+## Setup (Mac/Linux)
+
+```bash
+cd youtube-safety-inspector/backend
+pip install -r requirements.txt
+export YOUTUBE_API_KEY="<YOUR_YOUTUBE_API_KEY>"
+# Optional: export OPENAI_API_KEY="<YOUR_OPENAI_API_KEY>"
 python main.py
 ```
 
@@ -199,7 +209,7 @@ Simple health check.
 Run analyzer quick tests:
 
 ```powershell
-cd "c:\Users\Elite\Documents\Mega Folder\#3\youtube-safety-inspector\backend"
+cd youtube-safety-inspector/backend
 python quick_test.py
 python test_analyzer.py
 ```
@@ -207,7 +217,7 @@ python test_analyzer.py
 Test endpoints manually:
 
 ```powershell
-$body = '{"video_id":"7zg_YfMyIFQ"}'
+$body = '{"video_id":"dQw4w9WgXcQ"}'
 Invoke-RestMethod -Uri "http://localhost:8000/analyze" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json -Depth 10
 
 $body = '{"subject":"dogs","prefer_shorts":false,"max_results":6}'
@@ -241,10 +251,39 @@ Invoke-RestMethod -Uri "http://localhost:8000/ai-entertainment" -Method POST -Bo
 | 🧑‍⚕️ Physical Therapy | Non‑professional rehab advice |
 | 🐾 AI Content | Community/vision indicators of AI‑generated media |
 
+## Security
+
+This extension implements several security measures:
+
+| Protection | Description |
+|------------|-------------|
+| 🔐 No hardcoded secrets | API keys loaded from environment variables only |
+| ✅ Video ID validation | Regex validation prevents injection attacks |
+| 🛡️ XSS protection | All user content escaped before rendering |
+| ⚡ Rate limiting | 30s cooldown per video, 100 videos/day limit |
+| 📊 Quota enforcement | Hard limits on YouTube API quota usage |
+| 🔒 Security headers | X-Content-Type-Options, X-Frame-Options, etc. |
+| 📦 Pinned dependencies | Exact versions prevent supply chain attacks |
+
+### API Key Security
+
+- **Never commit API keys** - use `.env` files (excluded via `.gitignore`)
+- Copy `.env.example` to `.env` and add your keys there
+- The extension reads keys from environment variables only
+
+### Production Deployment
+
+For production use, configure the API URL in Chrome storage:
+
+```javascript
+chrome.storage.sync.set({ apiBaseUrl: 'https://your-api-server.com' });
+```
+
 ## Contributing
 
 - Add new danger signatures to `safety-db/signatures/` following the existing JSON schema.
 - PRs welcome for UI improvements, additional trusted channels, new animal keywords, or alternative sources.
+- Run security scans before submitting PRs (recommended: `truffleHog`, `gitleaks`)
 
 ## License
 

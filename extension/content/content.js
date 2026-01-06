@@ -928,24 +928,29 @@ async function loadTabContent(tabName, forceReload = false) {
   }
 }
 
-// Helper to create video card HTML
+// Helper to create video card HTML (XSS-safe)
 function createVideoCard(video, type = 'real') {
   const badgeClass = type === 'tutorials' ? 'tutorial' : type === 'entertainment' ? 'ai' : (video.is_trusted ? 'trusted' : '');
   const badgeText = video.badge || (type === 'tutorials' ? '🎓 Tutorial' : type === 'entertainment' ? '🤖 AI' : '✓ Real');
   
+  // Sanitize URL to prevent XSS (only allow YouTube URLs)
+  const safeUrl = video.url && (video.url.startsWith('https://www.youtube.com/') || video.url.startsWith('https://youtube.com/')) 
+    ? escapeHtml(video.url) 
+    : '#';
+  
   return `
-    <div class="yt-video-card" onclick="window.location.href='${video.url}'">
+    <div class="yt-video-card" onclick="window.location.href='${safeUrl}'">
       <div class="yt-thumb-container">
-        <img class="yt-thumb" src="${video.thumbnail}" alt="" loading="lazy"
+        <img class="yt-thumb" src="${escapeHtml(video.thumbnail || '')}" alt="" loading="lazy"
              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 180%22><rect fill=%22%23272727%22 width=%22320%22 height=%22180%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23717171%22 font-size=%2224%22 text-anchor=%22middle%22 dy=%22.3em%22>🎬</text></svg>'">
         <div class="yt-thumb-overlay">
           <div class="yt-play-icon"></div>
         </div>
-        <span class="yt-badge ${badgeClass}">${badgeText}</span>
+        <span class="yt-badge ${badgeClass}">${escapeHtml(badgeText)}</span>
       </div>
       <div class="yt-video-info">
-        <div class="yt-video-title">${escapeHtml(video.title)}</div>
-        <div class="yt-channel-name">${escapeHtml(video.channel)}</div>
+        <div class="yt-video-title">${escapeHtml(video.title || 'Untitled')}</div>
+        <div class="yt-channel-name">${escapeHtml(video.channel || 'Unknown')}</div>
       </div>
     </div>
   `;

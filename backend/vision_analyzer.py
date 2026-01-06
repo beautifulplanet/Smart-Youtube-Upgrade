@@ -4,6 +4,7 @@ Uses OpenAI GPT-4 Vision to analyze video frames for safety concerns
 """
 
 import os
+import re
 import base64
 import asyncio
 import httpx
@@ -12,6 +13,13 @@ from yt_dlp import YoutubeDL
 import tempfile
 import subprocess
 import shutil
+
+# Security: Video ID validation pattern
+VIDEO_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_-]{11}$')
+
+def validate_video_id(video_id: str) -> bool:
+    """Validate YouTube video ID format to prevent command injection"""
+    return bool(video_id and VIDEO_ID_PATTERN.match(video_id))
 
 class VisionAnalyzer:
     """Analyzes video screenshots using AI vision models"""
@@ -30,12 +38,21 @@ class VisionAnalyzer:
         Extract and analyze frames from a YouTube video
         
         Args:
-            video_id: YouTube video ID
+            video_id: YouTube video ID (must be valid 11-char format)
             num_frames: Number of frames to analyze (default 5)
             
         Returns:
             dict with analysis results and any safety concerns
         """
+        # Security: Validate video ID before passing to subprocess
+        if not validate_video_id(video_id):
+            return {
+                "enabled": False,
+                "message": "Invalid video ID format",
+                "concerns": [],
+                "frames_analyzed": 0
+            }
+        
         if not self.enabled:
             return {
                 "enabled": False,
