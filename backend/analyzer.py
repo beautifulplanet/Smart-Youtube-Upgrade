@@ -1,6 +1,13 @@
 """
-Safety Analyzer - Core analysis engine
-Combines transcript extraction, signature matching, comment analysis, and AI analysis
+"""YouTube Safety Inspector - Safety Analyzer
+Copyright (c) 2026 beautifulplanet
+Licensed under MIT License
+
+Core analysis engine that combines transcript extraction, 
+signature matching, comment analysis, and AI analysis.
+
+Data provided by YouTube Data API
+https://developers.google.com/youtube
 """
 
 import re

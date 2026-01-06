@@ -1,4 +1,11 @@
-// YouTube Safety Inspector - Background Service Worker
+/**
+ * YouTube Safety Inspector - Background Service Worker
+ * Copyright (c) 2026 beautifulplanet
+ * Licensed under MIT License
+ * 
+ * Data provided by YouTube Data API
+ * https://developers.google.com/youtube
+ */
 
 const API_BASE_URL = 'http://localhost:8000';
 

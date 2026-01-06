@@ -1,6 +1,13 @@
 """
-Safe Alternatives Finder - Suggests safe/real alternatives to dangerous or AI content
-Uses YouTube Data API to find quality educational replacements
+"""YouTube Safety Inspector - Safe Alternatives Finder
+Copyright (c) 2026 beautifulplanet
+Licensed under MIT License
+
+Suggests safe/real alternatives to dangerous or AI content.
+Uses YouTube Data API to find quality educational replacements.
+
+Data provided by YouTube Data API
+https://developers.google.com/youtube
 """
 
 import os

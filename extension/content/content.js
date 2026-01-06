@@ -1,6 +1,14 @@
-// YouTube Safety Inspector - Content Script
-// Auto-shows warning overlay for dangerous videos + AI content detection
-// VERSION: 2.0 - Fixed ad detection for Shorts
+/**
+ * YouTube Safety Inspector - Content Script
+ * Copyright (c) 2026 beautifulplanet
+ * Licensed under MIT License
+ * 
+ * Auto-shows warning overlay for dangerous videos + AI content detection
+ * VERSION: 2.0 - Fixed ad detection for Shorts
+ * 
+ * Data provided by YouTube Data API
+ * https://developers.google.com/youtube
+ */
 
 console.log('🛡️ ========================================');
 console.log('🛡️ YouTube Safety Inspector v2.0 LOADED!');
@@ -937,6 +945,9 @@ function showAIBanner(message, duration = 0, alternatives = [], detectedAnimal =
     } else if (altSection) {
       altSection.style.display = 'none';
     }
+    
+    // Add YouTube API attribution to the banner
+    addYouTubeAttribution(banner);
     
     banner.style.display = 'block';
     

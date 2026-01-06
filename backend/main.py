@@ -1,6 +1,12 @@
 """
 YouTube Safety Inspector - Backend API
-FastAPI server for video analysis and safety assessment
+Copyright (c) 2026 beautifulplanet
+Licensed under MIT License
+
+FastAPI server for video analysis and safety assessment.
+
+Data provided by YouTube Data API
+https://developers.google.com/youtube
 """
 
 import os
