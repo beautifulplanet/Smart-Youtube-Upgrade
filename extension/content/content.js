@@ -1108,15 +1108,39 @@ async function checkVideo() {
   console.log('🛡️ ✅ *** STARTING ANALYSIS *** Video:', videoId, isShorts ? '(Short)' : '(Regular)');
   lastAnalyzedVideoId = videoId;
 
-  // For regular videos, wait 2 seconds. For Shorts, go immediately.
-  if (!isShorts) {
+  // Wait for DOM to be ready - Shorts need more time for dynamic content to load
+  if (isShorts) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  } else {
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
+  // Scrape video metadata from page (allows AI detection without YouTube API key)
+  let scrapedTitle = getVideoTitle();
+  let scrapedChannel = getChannelName();
+  let scrapedDescription = getVideoDescription();
+  
+  // If title is still empty for Shorts, try one more time after a delay
+  if (isShorts && !scrapedTitle) {
+    console.log('🛡️ ⏳ Shorts title not found, waiting for DOM...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    scrapedTitle = getVideoTitle();
+    scrapedChannel = getChannelName();
+    scrapedDescription = getVideoDescription();
+  }
+  
   console.log('🛡️ 📤 Sending ANALYZE_VIDEO to background...');
+  console.log('🛡️ 📝 Scraped title:', scrapedTitle);
+  console.log('🛡️ 📝 Scraped channel:', scrapedChannel);
   
   chrome.runtime.sendMessage(
-    { type: 'ANALYZE_VIDEO', videoId: videoId },
+    { 
+      type: 'ANALYZE_VIDEO', 
+      videoId: videoId,
+      title: scrapedTitle,
+      description: scrapedDescription,
+      channel: scrapedChannel
+    },
     (response) => {
       console.log('🛡️ 📥 Response from background:', response);
       console.log('🛡️ Last error:', chrome.runtime.lastError);
@@ -1134,6 +1158,91 @@ async function checkVideo() {
       }
     }
   );
+}
+
+// Scrape video title from YouTube page
+function getVideoTitle() {
+  const isShorts = location.pathname.includes('/shorts/');
+  
+  if (isShorts) {
+    // Shorts - try multiple selectors
+    // 1. Reel overlay title
+    const reelTitle = document.querySelector('ytd-reel-video-renderer[is-active] h2.ytd-reel-player-header-renderer');
+    if (reelTitle?.textContent?.trim()) return reelTitle.textContent.trim();
+    
+    // 2. Shorts player header
+    const shortsHeader = document.querySelector('ytd-reel-video-renderer[is-active] #shorts-player-title, ytd-shorts h2');
+    if (shortsHeader?.textContent?.trim()) return shortsHeader.textContent.trim();
+    
+    // 3. Try meta tags
+    const metaTitle = document.querySelector('meta[property="og:title"], meta[name="title"]');
+    if (metaTitle?.content?.trim()) return metaTitle.content.trim();
+    
+    // 4. Fallback: document title
+    const docTitle = document.title.replace(' - YouTube', '').replace('#shorts', '').trim();
+    if (docTitle) return docTitle;
+  }
+  
+  // Regular video selectors
+  const titleEl = document.querySelector('h1.ytd-watch-metadata yt-formatted-string, h1.title yt-formatted-string, #title h1 yt-formatted-string');
+  if (titleEl?.textContent?.trim()) return titleEl.textContent.trim();
+  
+  // Fallback to meta or document title
+  const metaTitle = document.querySelector('meta[property="og:title"], meta[name="title"]');
+  if (metaTitle?.content?.trim()) return metaTitle.content.trim();
+  
+  return document.title.replace(' - YouTube', '').trim();
+}
+
+// Scrape channel name from YouTube page
+function getChannelName() {
+  const isShorts = location.pathname.includes('/shorts/');
+  
+  if (isShorts) {
+    // Shorts - try multiple selectors
+    // 1. Active reel channel name
+    const reelChannel = document.querySelector('ytd-reel-video-renderer[is-active] ytd-channel-name a, ytd-reel-video-renderer[is-active] #channel-name a');
+    if (reelChannel?.textContent?.trim()) return reelChannel.textContent.trim();
+    
+    // 2. Shorts overlay channel
+    const shortsChannel = document.querySelector('ytd-reel-player-overlay-renderer #channel-name a, .ytd-reel-player-header-renderer #channel-name');
+    if (shortsChannel?.textContent?.trim()) return shortsChannel.textContent.trim();
+    
+    // 3. Try any visible channel name in shorts
+    const anyChannel = document.querySelector('[is-active] #channel-name, ytd-shorts #channel-name a');
+    if (anyChannel?.textContent?.trim()) return anyChannel.textContent.trim();
+    
+    // 4. Meta tag fallback
+    const metaChannel = document.querySelector('meta[name="author"], link[itemprop="name"]');
+    if (metaChannel?.content?.trim()) return metaChannel.content.trim();
+  }
+  
+  // Regular video - channel link
+  const channelEl = document.querySelector('#channel-name a, ytd-channel-name a, #owner-name a, #upload-info ytd-channel-name a');
+  if (channelEl?.textContent?.trim()) return channelEl.textContent.trim();
+  
+  return '';
+}
+
+// Scrape video description (first 500 chars)
+function getVideoDescription() {
+  const isShorts = location.pathname.includes('/shorts/');
+  
+  if (isShorts) {
+    // Shorts often don't have visible descriptions, try meta
+    const metaDesc = document.querySelector('meta[property="og:description"], meta[name="description"]');
+    if (metaDesc?.content?.trim()) return metaDesc.content.trim().substring(0, 500);
+    return '';
+  }
+  
+  const descEl = document.querySelector('#description-inner, ytd-text-inline-expander #snippet-text, #description yt-formatted-string');
+  if (descEl?.textContent?.trim()) return descEl.textContent.trim().substring(0, 500);
+  
+  // Fallback to meta description
+  const metaDesc = document.querySelector('meta[property="og:description"], meta[name="description"]');
+  if (metaDesc?.content?.trim()) return metaDesc.content.trim().substring(0, 500);
+  
+  return '';
 }
 
 function showResults(results) {

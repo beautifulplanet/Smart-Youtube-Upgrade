@@ -1,4 +1,3 @@
-"""
 """YouTube Safety Inspector - Safe Alternatives Finder
 Copyright (c) 2026 beautifulplanet
 Licensed under MIT License

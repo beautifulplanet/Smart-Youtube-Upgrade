@@ -1,4 +1,3 @@
-"""
 """YouTube Safety Inspector - Safety Analyzer
 Copyright (c) 2026 beautifulplanet
 Licensed under MIT License
@@ -217,35 +216,44 @@ class SafetyAnalyzer:
         
         return None
         
-    async def analyze(self, video_id: str) -> dict:
+    async def analyze(self, video_id: str, scraped_title: str = None, scraped_description: str = None, scraped_channel: str = None) -> dict:
         """
         Perform full safety analysis on a video.
         
         Args:
             video_id: YouTube video ID
+            scraped_title: Optional title scraped by extension (fallback if no API key)
+            scraped_description: Optional description from extension
+            scraped_channel: Optional channel name from extension
             
         Returns:
             Analysis results including safety score, warnings, and categories
         """
         # Step 0: Get video metadata (channel name) to check if trusted
-        channel_name = ""
-        video_title = ""
-        video_description = ""
+        channel_name = scraped_channel or ""
+        video_title = scraped_title or ""
+        video_description = scraped_description or ""
         video_tags = []
         is_trusted_channel = False
         
+        # Try to fetch from YouTube API (more complete data)
         try:
             fetcher = YouTubeDataFetcher(api_key=self.youtube_api_key)
             metadata = await fetcher.get_video_metadata(video_id)
             if metadata:
-                channel_name = metadata.channel
-                video_title = metadata.title
-                video_description = metadata.description
+                channel_name = metadata.channel or channel_name
+                video_title = metadata.title or video_title
+                video_description = metadata.description or video_description
                 video_tags = metadata.tags or []
-                is_trusted_channel = channel_name.lower() in self.TRUSTED_CHANNELS
             await fetcher.close()
         except Exception as e:
-            print(f"Metadata fetch failed: {e}")
+            print(f"Metadata fetch failed (using scraped data): {e}")
+        
+        # Check if trusted channel
+        is_trusted_channel = channel_name.lower() in self.TRUSTED_CHANNELS if channel_name else False
+        
+        print(f"📺 Analyzing: '{video_title}' by '{channel_name}'")
+        print(f"   Trusted: {is_trusted_channel}, Has API key: {bool(self.youtube_api_key)}")
         
         # Step 1: Get transcript
         transcript_text, transcript_available = await self._get_transcript(video_id)

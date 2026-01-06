@@ -87,6 +87,10 @@ def log_api_call(cost: int):
 # Request/Response models
 class AnalyzeRequest(BaseModel):
     video_id: str
+    # Optional: Extension can pass scraped metadata (works without YOUTUBE_API_KEY)
+    title: Optional[str] = None
+    description: Optional[str] = None
+    channel: Optional[str] = None
     
 class Warning(BaseModel):
     category: str
@@ -161,7 +165,13 @@ async def analyze_video(request: AnalyzeRequest):
     5. Returns a safety score and warnings
     """
     try:
-        results = await analyzer.analyze(request.video_id)
+        # Pass optional metadata from extension (allows AI detection without API key)
+        results = await analyzer.analyze(
+            request.video_id,
+            scraped_title=request.title,
+            scraped_description=request.description,
+            scraped_channel=request.channel
+        )
         
         # Add vision analysis if available (runs in parallel)
         if vision_analyzer and vision_analyzer.enabled:

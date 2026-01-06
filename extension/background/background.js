@@ -32,7 +32,7 @@ function canAnalyze(videoId) {
 // Listen for messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'ANALYZE_VIDEO') {
-    analyzeVideo(message.videoId)
+    analyzeVideo(message.videoId, message.title, message.description, message.channel)
       .then(results => sendResponse({ success: true, data: results }))
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true; // Keep channel open for async response
@@ -53,8 +53,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Analyze a video
-async function analyzeVideo(videoId) {
+async function analyzeVideo(videoId, title = null, description = null, channel = null) {
   console.log('🛡️ [BG] analyzeVideo called for:', videoId);
+  console.log('🛡️ [BG] Scraped metadata - title:', title?.substring(0, 50), 'channel:', channel);
   
   // Check rate limit first
   if (!canAnalyze(videoId)) {
@@ -74,10 +75,18 @@ async function analyzeVideo(videoId) {
   
   console.log('🛡️ [BG] Making API request to:', API_BASE_URL + '/analyze');
   
+  // Include scraped metadata for AI detection (works without YouTube API key)
+  const requestBody = { 
+    video_id: videoId,
+    title: title,
+    description: description,
+    channel: channel
+  };
+  
   const response = await fetch(`${API_BASE_URL}/analyze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ video_id: videoId })
+    body: JSON.stringify(requestBody)
   });
   
   console.log('🛡️ [BG] API response status:', response.status);
