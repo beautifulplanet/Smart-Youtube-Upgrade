@@ -47,10 +47,47 @@ class SafetyAnalyzer:
         # Get API key from param, env, or None
         self.youtube_api_key = youtube_api_key or os.environ.get("YOUTUBE_API_KEY")
         
+        # Suspicious channel name patterns (channels that typically post AI content)
+        self._suspicious_channel_patterns = [
+            r"talk\s*(with|to|ing)?\s*(rico|pet|animal|bird|parrot|cat|dog)",
+            r"(pet|animal|bird|parrot|cat|dog)\s*talk",
+            r"(funny|cute)\s*(pet|animal|bird|parrot|cat|dog)\s*video",
+            r"ai\s*(pet|animal|content|video|generated)",
+        ]
+        
+        # Hashtag patterns that suggest AI-generated animal content
+        self._ai_hashtag_patterns = [
+            r"#talkingbird",
+            r"#talkingparrot",
+            r"#talkingcat",
+            r"#talkingdog",
+            r"#talkinganimal",
+            r"#funnybirds",
+            r"#funnypetvideos",
+            r"#parrottalking",
+            r"#birdtalking",
+            r"#cattalking",
+            r"#dogtalking",
+            r"#aianimals",
+            r"#aigenerated",
+            r"#aiart",
+            r"#aivideo",
+        ]
+        
         # Heuristic patterns for impossible/AI content
         # Animals that appear to talk, have conversations, or do impossible things
         self._impossible_patterns = [
-            # Talking animals - conversation keywords
+            # TWO animals having a conversation (dead giveaway for AI)
+            (r"\b(two|2|both|pair)\b.{0,20}\b(parrot|bird|cat|dog|animal)s?\b.{0,30}\b(talk|convers|chat|argue|discuss|debate)", 
+             "Two animals having a conversation (AI content)"),
+            (r"\b(parrot|bird|cat|dog)s?\b.{0,20}\b(talk|convers|chat|argue)\b.{0,20}\b(each other|together|to one another)",
+             "Animals conversing with each other (AI content)"),
+            # Parrot/bird specific conversations
+            (r"\b(parrot|parakeet|cockatoo|budgie|macaw)s?\b.{0,30}\b(conversation|talking to|chatting with|argues with|debates)",
+             "Parrots having human-like conversation (likely AI)"),
+            (r"\b(parrot|bird)s?\b.{0,15}\b(having a|in a|long|full|real|actual)\b.{0,10}\b(conversation|discussion|debate|argument)",
+             "Animals having extended conversation (AI content)"),
+            # Generic talking animals - conversation keywords
             (r"\b(parrot|bird|cat|dog|monkey|ape|gorilla|chimp|elephant|lion|tiger|bear|fox|raccoon|squirrel|rabbit|hamster|horse|cow|pig|chicken|duck|goose|owl|crow|raven|fish|shark|whale|dolphin|seal|penguin|frog|turtle|snake|lizard|gecko|iguana|crocodile|alligator)\b.{0,40}\b(talk|talking|speaks|speaking|says|said|conversation|chat|chatting|argue|arguing|debate|interview|podcast|call|phone|answer|respond|tells|told|ask|asking|wants|demanded|yells|screaming|complain|rant|confess|admit|explain|announce|declare|insist|refuse|agree|disagree)\b", 
              "Animal appearing to communicate like a human"),
             (r"\b(talk|talking|speaks|speaking|says|said|conversation|chat|chatting|argue|arguing|debate|interview|podcast|call|phone|answer|respond|tells|told|ask|asking|wants|demanded|yells|screaming|complain|rant|confess|admit|explain|announce|declare|insist|refuse|agree|disagree)\b.{0,40}\b(parrot|bird|cat|dog|monkey|ape|gorilla|chimp|elephant|lion|tiger|bear|fox|raccoon|squirrel|rabbit|hamster|horse|cow|pig|chicken|duck|goose|owl|crow|raven|fish|shark|whale|dolphin|seal|penguin|frog|turtle|snake|lizard|gecko|iguana|crocodile|alligator)\b",
@@ -80,19 +117,96 @@ class SafetyAnalyzer:
              "Animal in human relationship drama (likely AI)"),
         ]
         
-    def _detect_impossible_content(self, title: str) -> str | None:
+        # SAFETY patterns - dangerous animals near children/babies
+        self._dangerous_animal_child_patterns = [
+            # Large birds with babies/children (parrots, cockatoos have powerful beaks)
+            # Pattern: bird near baby OR baby near bird (either order)
+            (r"\b(parrot|cockatoo|macaw|cockatiel|conure|african grey|amazon parrot|eclectus|bird)\b.{0,50}\b(baby|infant|newborn|toddler|child|kid|sleeping|nap|crib|bed)\b",
+             "⚠️ SAFETY: Large parrot/bird near baby/child - parrots have powerful beaks (300+ PSI) that can cause serious injury"),
+            (r"\b(baby|infant|newborn|toddler|child|kid|sleeping)\b.{0,50}\b(parrot|cockatoo|macaw|cockatiel|conure|african grey|bird)\b",
+             "⚠️ SAFETY: Baby/child near large bird - birds can bite unpredictably and cause serious injury"),
+            # Flexible pattern: any mention of baby AND parrot/cockatoo in same title
+            (r"(?=.*\b(baby|infant|newborn|toddler)\b)(?=.*\b(parrot|cockatoo|macaw|bird)\b)",
+             "⚠️ SAFETY: Video shows baby with parrot/bird - large birds have dangerous beaks and can injure infants"),
+            # Dogs with babies unsupervised
+            (r"\b(pit ?bull|rottweiler|german shepherd|doberman|husky|malamute|akita|chow|mastiff|great dane|wolf ?dog)\b.{0,50}\b(baby|infant|newborn|toddler|sleep|alone|unsupervised)\b",
+             "⚠️ SAFETY: Large/powerful dog near unsupervised baby - never leave children unattended with dogs"),
+            (r"\b(baby|infant|newborn|toddler)\b.{0,50}\b(pit ?bull|rottweiler|husky|german shepherd|dog)\b.{0,30}\b(sleep|alone|unsupervised)\b",
+             "⚠️ SAFETY: Baby sleeping near dog - dogs should never be left unsupervised with infants"),
+            # Flexible: baby AND large dog breed in same text
+            (r"(?=.*\b(baby|infant|newborn|toddler)\b)(?=.*\b(pit ?bull|rottweiler|husky|wolf|malamute)\b)",
+             "⚠️ SAFETY: Video shows baby with large/powerful dog - dogs should never be left unsupervised with infants"),
+            # Cats with babies sleeping
+            (r"\b(cat|kitten)\b.{0,40}\b(baby|infant|newborn)\b.{0,30}\b(sleep|sleeping|crib|face|breathing)\b",
+             "⚠️ SAFETY: Cat near sleeping baby - cats can accidentally suffocate infants"),
+            # Exotic/wild animals with children
+            (r"\b(snake|python|boa|constrictor|reptile|monitor lizard|alligator|crocodile|wolf|coyote|fox|raccoon|monkey|chimp|chimpanzee|primate)\b.{0,50}\b(baby|infant|toddler|child|kid|play|hug|cuddle|sleep)\b",
+             "⚠️ SAFETY: Wild/exotic animal near child - extremely dangerous, wild animals are unpredictable"),
+            (r"\b(baby|infant|toddler|child|kid)\b.{0,50}\b(snake|python|boa|monitor|alligator|crocodile|wolf|coyote|monkey|chimp|primate)\b",
+             "⚠️ SAFETY: Child near wild/exotic animal - these animals can cause severe injury or death"),
+            # General dangerous combinations
+            (r"\b(baby|infant|newborn|toddler)\b.{0,40}\b(sleep|sleeping|nap)\b.{0,40}\b(with|next to|beside|near)\b.{0,30}\b(pet|animal|dog|cat|bird|parrot)\b",
+             "⚠️ SAFETY: Baby sleeping with pet - animals should never be left unsupervised with sleeping infants"),
+        ]
+        
+    def _detect_impossible_content(self, title: str, description: str = "", channel: str = "", tags: list = None) -> str | None:
         """
-        Detect likely AI content based on impossible scenarios in video title.
+        Detect likely AI content based on impossible scenarios in video title,
+        description, hashtags, channel name, and tags.
         Returns description of why it's flagged, or None if not detected.
         """
-        if not title:
-            return None
-            
-        title_lower = title.lower()
+        tags = tags or []
         
-        for pattern, description in self._impossible_patterns:
-            if re.search(pattern, title_lower, re.IGNORECASE):
-                return description
+        # Combine all text for analysis
+        full_text = f"{title} {description}".lower()
+        channel_lower = channel.lower() if channel else ""
+        
+        # Check title patterns
+        for pattern, reason in self._impossible_patterns:
+            if re.search(pattern, full_text, re.IGNORECASE):
+                return reason
+        
+        # Check for suspicious hashtags (high confidence for AI content)
+        hashtag_count = 0
+        matched_hashtags = []
+        for hashtag_pattern in self._ai_hashtag_patterns:
+            if re.search(hashtag_pattern, full_text, re.IGNORECASE):
+                hashtag_count += 1
+                matched_hashtags.append(hashtag_pattern.replace("#", "").replace("\\", ""))
+        
+        # 2+ AI-related hashtags = very likely AI
+        if hashtag_count >= 2:
+            return f"Multiple AI-associated hashtags detected: {', '.join(matched_hashtags[:3])}"
+        
+        # Check channel name patterns
+        for pattern in self._suspicious_channel_patterns:
+            if re.search(pattern, channel_lower, re.IGNORECASE):
+                # Channel name alone isn't enough, but combined with 1 hashtag = flag
+                if hashtag_count >= 1:
+                    return f"Suspicious channel pattern + AI hashtags (channel: {channel})"
+        
+        # Check tags from video metadata
+        suspicious_tags = ["talking parrot", "talking bird", "talking cat", "talking dog", 
+                          "ai generated", "ai video", "funny animals talking"]
+        for tag in tags:
+            tag_lower = tag.lower()
+            for sus_tag in suspicious_tags:
+                if sus_tag in tag_lower:
+                    return f"Suspicious video tag: '{tag}'"
+        
+        return None
+    
+    def _detect_dangerous_animal_child(self, title: str, description: str = "", tags: list = None) -> str | None:
+        """
+        Detect dangerous situations with animals and children/babies.
+        Returns safety warning description or None.
+        """
+        tags = tags or []
+        full_text = f"{title} {description} {' '.join(tags)}".lower()
+        
+        for pattern, warning in self._dangerous_animal_child_patterns:
+            if re.search(pattern, full_text, re.IGNORECASE):
+                return warning
         
         return None
         
@@ -109,6 +223,8 @@ class SafetyAnalyzer:
         # Step 0: Get video metadata (channel name) to check if trusted
         channel_name = ""
         video_title = ""
+        video_description = ""
+        video_tags = []
         is_trusted_channel = False
         
         try:
@@ -117,6 +233,8 @@ class SafetyAnalyzer:
             if metadata:
                 channel_name = metadata.channel
                 video_title = metadata.title
+                video_description = metadata.description
+                video_tags = metadata.tags or []
                 is_trusted_channel = channel_name.lower() in self.TRUSTED_CHANNELS
             await fetcher.close()
         except Exception as e:
@@ -140,16 +258,37 @@ class SafetyAnalyzer:
         # Step 2.5: Heuristic AI detection for impossible animal behaviors
         # This catches AI content even when comments don't flag it
         if not is_trusted_channel and video_title:
-            heuristic_ai = self._detect_impossible_content(video_title)
+            heuristic_ai = self._detect_impossible_content(
+                title=video_title,
+                description=video_description,
+                channel=channel_name,
+                tags=video_tags
+            )
             if heuristic_ai:
                 comment_analysis["has_ai_content"] = True
                 comment_analysis["warnings"].insert(0, {
                     "category": "AI Content",
                     "severity": "high",
-                    "message": f"Heuristic: {heuristic_ai}",
+                    "message": f"🤖 {heuristic_ai}",
                     "timestamp": None
                 })
                 print(f"🤖 Heuristic AI detection triggered: {heuristic_ai}")
+        
+        # Step 2.6: Detect dangerous animal + child/baby situations
+        if video_title:
+            dangerous_animal_child = self._detect_dangerous_animal_child(
+                title=video_title,
+                description=video_description,
+                tags=video_tags
+            )
+            if dangerous_animal_child:
+                comment_analysis["warnings"].insert(0, {
+                    "category": "Child Safety",
+                    "severity": "critical",
+                    "message": dangerous_animal_child,
+                    "timestamp": None
+                })
+                print(f"⚠️ Dangerous animal/child situation detected: {dangerous_animal_child}")
         
         # Step 3: Match against danger signatures (transcript + comment text)
         all_text = transcript_text

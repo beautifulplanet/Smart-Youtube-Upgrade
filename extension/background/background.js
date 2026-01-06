@@ -5,6 +5,23 @@ const API_BASE_URL = 'http://localhost:8000';
 // Cache for analysis results
 const analysisCache = new Map();
 
+// Rate limiting to prevent quota exhaustion
+const rateLimiter = new Map();
+const COOLDOWN_MS = 30000; // 30 seconds between same video analyses
+
+function canAnalyze(videoId) {
+  const lastCall = rateLimiter.get(videoId);
+  const now = Date.now();
+  
+  if (lastCall && (now - lastCall) < COOLDOWN_MS) {
+    console.log(`🛡️ Rate limit: Video ${videoId} analyzed ${Math.floor((now - lastCall) / 1000)}s ago, waiting...`);
+    return false;
+  }
+  
+  rateLimiter.set(videoId, now);
+  return true;
+}
+
 // Listen for messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'ANALYZE_VIDEO') {
@@ -30,10 +47,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Analyze a video
 async function analyzeVideo(videoId) {
+  console.log('🛡️ [BG] analyzeVideo called for:', videoId);
+  
+  // Check rate limit first
+  if (!canAnalyze(videoId)) {
+    // Return cached result if available
+    if (analysisCache.has(videoId)) {
+      console.log('🛡️ [BG] Returning cached result (rate limited)');
+      return analysisCache.get(videoId);
+    }
+    throw new Error('Rate limited - please wait 30s before re-analyzing');
+  }
+  
   // Check cache first
   if (analysisCache.has(videoId)) {
+    console.log('🛡️ [BG] Returning from cache');
     return analysisCache.get(videoId);
   }
+  
+  console.log('🛡️ [BG] Making API request to:', API_BASE_URL + '/analyze');
   
   const response = await fetch(`${API_BASE_URL}/analyze`, {
     method: 'POST',
@@ -41,11 +73,15 @@ async function analyzeVideo(videoId) {
     body: JSON.stringify({ video_id: videoId })
   });
   
+  console.log('🛡️ [BG] API response status:', response.status);
+  
   if (!response.ok) {
+    console.error('🛡️ [BG] API request failed:', response.status, response.statusText);
     throw new Error('Analysis failed');
   }
   
   const results = await response.json();
+  console.log('🛡️ [BG] API returned results, warnings:', results.warnings?.length || 0);
   analysisCache.set(videoId, results);
   
   // Update badge based on safety score

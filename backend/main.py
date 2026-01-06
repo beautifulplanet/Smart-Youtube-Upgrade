@@ -30,10 +30,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS for Chrome extension
+# CORS for Chrome extension (restricted to secure origins)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to chrome-extension://
+    allow_origins=["chrome-extension://*", "http://localhost:*", "http://127.0.0.1:*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -62,6 +62,21 @@ if VISION_AVAILABLE and openai_api_key:
     print("✅ OpenAI API key found - Vision analysis enabled")
 else:
     print("⚠️ Vision analysis disabled (requires OPENAI_API_KEY + yt-dlp + ffmpeg)")
+
+# API Quota Tracking (YouTube daily limit: 10,000)
+import time
+api_quota_tracker = {"count": 0, "date": time.strftime("%Y-%m-%d")}
+
+def log_api_call(cost: int):
+    """Track YouTube API quota usage with daily reset"""
+    today = time.strftime("%Y-%m-%d")
+    if api_quota_tracker["date"] != today:
+        api_quota_tracker["count"] = 0
+        api_quota_tracker["date"] = today
+    api_quota_tracker["count"] += cost
+    if api_quota_tracker["count"] > 9000:  # Warn at 90% quota
+        print(f"⚠️ WARNING: {api_quota_tracker['count']}/10000 daily YouTube API quota used!")
+    return api_quota_tracker["count"]
 
 # Request/Response models
 class AnalyzeRequest(BaseModel):
@@ -115,7 +130,16 @@ class AnalysisResponse(BaseModel):
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "version": "1.0.0"}
+    return {
+        "status": "healthy", 
+        "version": "1.0.0",
+        "api_quota": {
+            "used_today": api_quota_tracker["count"],
+            "daily_limit": 10000,
+            "remaining": 10000 - api_quota_tracker["count"],
+            "date": api_quota_tracker["date"]
+        }
+    }
 
 
 @app.post("/analyze", response_model=AnalysisResponse)
@@ -205,7 +229,7 @@ async def analyze_video(request: AnalyzeRequest):
                     danger_categories=flagged_categories,
                     original_title=video_title,
                     is_ai_content=has_ai_content,
-                    max_results=8  # More results for the grid
+                    max_results=10  # More results for the grid
                 )
                 
                 results['safe_alternatives'] = {
@@ -231,6 +255,13 @@ async def analyze_video(request: AnalyzeRequest):
                 'message': 'No alternatives needed - content appears safe',
                 'category_type': ''
             }
+        
+        # Log API quota usage (comments: 1, metadata: 1, search: 100 if alternatives)
+        quota_cost = 2  # Base: comments + metadata
+        if results.get('safe_alternatives', {}).get('alternatives'):
+            quota_cost += 100  # Search API call
+        current_usage = log_api_call(quota_cost)
+        results['api_quota_used'] = current_usage
         
         return results
     except Exception as e:

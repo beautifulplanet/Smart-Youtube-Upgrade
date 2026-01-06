@@ -111,63 +111,82 @@ class SafeAlternativesFinder:
         }
         
         # Mapping of danger categories to safe search terms
+        # Note: Keys must match category IDs from categories.json (lowercase)
         self.safe_search_mappings = {
-            "Electrical": [
+            "electrical": [
                 "electrical safety tutorial professional",
                 "licensed electrician how to",
                 "electrical work safety gear OSHA"
             ],
-            "DIY": [
+            "diy": [
                 "professional DIY safety tutorial",
                 "woodworking safety equipment",
                 "home improvement licensed contractor"
             ],
-            "Cooking": [
+            "cooking": [
                 "professional chef cooking technique",
                 "food safety cooking temperature",
-                "culinary school proper technique"
+                "culinary school proper technique",
+                "safe BBQ grilling techniques professional",
+                "smoker safety food safe materials",
+                "proper smoking meat professional chef"
             ],
-            "Medical": [
+            "bbq": [
+                "safe BBQ smoker build professional",
+                "proper smoking meat techniques chef",
+                "food safe smoker materials guide",
+                "BBQ pitmaster professional tips",
+                "grilling safety tips certified",
+                "how to build smoker food safe"
+            ],
+            "grilling": [
+                "safe grilling techniques professional",
+                "BBQ safety tips expert",
+                "food safe smoker setup guide",
+                "proper smoker materials food grade",
+                "pitmaster BBQ tutorial safe"
+            ],
+            "medical": [
                 "doctor explains medical procedure",
                 "licensed physical therapist tutorial",
                 "medical professional health advice"
             ],
-            "Chemical": [
+            "chemical": [
                 "chemistry safety lab tutorial",
                 "chemical safety professional",
                 "hazmat safety handling chemicals"
             ],
-            "Fitness": [
+            "fitness": [
                 "certified personal trainer workout",
                 "physical therapist approved exercises",
                 "proper form fitness tutorial"
             ],
-            "Automotive": [
+            "automotive": [
                 "ASE certified mechanic tutorial",
                 "professional auto repair safety",
                 "car maintenance proper technique"
             ],
-            "Childcare": [
+            "childcare": [
                 "pediatrician child safety tips",
                 "certified childcare professional",
                 "child safety expert advice"
             ],
-            "Outdoor": [
+            "outdoor": [
                 "wilderness survival expert certified",
                 "outdoor safety professional guide",
                 "camping safety ranger tips"
             ],
-            "OSHA Workplace": [
+            "osha_workplace": [
                 "OSHA safety training official",
                 "workplace safety professional",
                 "industrial safety certified"
             ],
-            "Driving Safety": [
+            "driving_dmv": [
                 "driving instructor professional tips",
                 "DMV approved driving tutorial",
                 "defensive driving certified course"
             ],
-            "Physical Therapy": [
+            "physical_therapy": [
                 "licensed physical therapist exercises",
                 "DPT approved rehabilitation",
                 "orthopedic specialist stretches"
@@ -210,7 +229,7 @@ class SafeAlternativesFinder:
         danger_categories: list[str],
         original_title: str = "",
         is_ai_content: bool = False,
-        max_results: int = 8
+        max_results: int = 10
     ) -> dict:
         """
         Find safe alternative videos based on detected dangers
@@ -219,7 +238,7 @@ class SafeAlternativesFinder:
             danger_categories: List of flagged danger categories
             original_title: Original video title for context
             is_ai_content: Whether AI-generated content was detected
-            max_results: Maximum number of suggestions (increased to 8)
+            max_results: Maximum number of suggestions (increased to 10)
             
         Returns:
             dict with alternative video suggestions
@@ -260,7 +279,14 @@ class SafeAlternativesFinder:
             # Build search queries from danger categories
             for category in danger_categories:
                 if category in self.safe_search_mappings:
-                    search_queries.extend(self.safe_search_mappings[category][:1])
+                    search_queries.extend(self.safe_search_mappings[category][:2])
+            
+            # Also check title for specific topics that need alternatives
+            title_lower = original_title.lower()
+            if any(kw in title_lower for kw in ['smoker', 'bbq', 'grill', 'smoking meat', 'smoke meat']):
+                search_queries.extend(self.safe_search_mappings.get('cooking', [])[:2])
+                if 'bbq' in self.safe_search_mappings:
+                    search_queries.extend(self.safe_search_mappings['bbq'][:2])
             
             # If no specific category, use general safety search
             if not search_queries and original_title:
@@ -268,13 +294,24 @@ class SafeAlternativesFinder:
             
             category_type = "safe_tutorial"
         else:
-            # No specific categories, return empty
-            return {
-                "enabled": True,
-                "alternatives": [],
-                "message": "No alternatives needed",
-                "category_type": ""
-            }
+            # Check if title suggests we should offer alternatives anyway
+            title_lower = original_title.lower() if original_title else ""
+            if any(kw in title_lower for kw in ['smoker', 'bbq', 'grill', 'diy', 'hack']):
+                search_queries = []
+                if any(kw in title_lower for kw in ['smoker', 'bbq', 'grill']):
+                    search_queries.extend(self.safe_search_mappings.get('cooking', [])[:2])
+                    search_queries.extend(self.safe_search_mappings.get('bbq', [])[:2])
+                else:
+                    search_queries = [f"{original_title} professional tutorial safe"]
+                category_type = "safe_tutorial"
+            else:
+                # No specific categories, return empty
+                return {
+                    "enabled": True,
+                    "alternatives": [],
+                    "message": "No alternatives needed",
+                    "category_type": ""
+                }
         
         # Search for each query
         seen_ids = set()

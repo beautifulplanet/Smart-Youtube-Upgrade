@@ -1,7 +1,17 @@
 // YouTube Safety Inspector - Content Script
 // Auto-shows warning overlay for dangerous videos + AI content detection
+// VERSION: 2.0 - Fixed ad detection for Shorts
 
-console.log('🛡️ YouTube Safety Inspector loaded!');
+console.log('🛡️ ========================================');
+console.log('🛡️ YouTube Safety Inspector v2.0 LOADED!');
+console.log('🛡️ URL:', location.href);
+console.log('🛡️ Is Shorts:', location.pathname.includes('/shorts/'));
+console.log('🛡️ ========================================');
+
+// ALERT to prove it loaded (remove after testing)
+if (location.pathname.includes('/shorts/')) {
+  console.log('🛡️ 🎯 THIS IS A SHORT - AD DETECTION DISABLED');
+}
 
 let currentVideoId = null;
 let aiBannerShown = false;
@@ -53,55 +63,98 @@ async function loadUserSettings() {
 // Inject immediately when script loads
 injectOverlay();
 injectAIBanner();
-checkVideo();
+
+// Initial check after a short delay
+setTimeout(() => {
+  console.log('🛡️ Initial video check...');
+  checkVideo();
+}, 1000);
 
 // Also check on navigation
 let lastUrl = location.href;
+let lastVideoId = null;
+let adCheckActive = false;
+
 setInterval(() => {
-  if (location.href !== lastUrl) {
+  const currentVideoId = getVideoId();
+  const isShorts = location.pathname.includes('/shorts/');
+  
+  // Only trigger re-analysis if the VIDEO ID actually changed (not just URL params)
+  if (currentVideoId && currentVideoId !== lastVideoId) {
+    console.log('🛡️ Video ID changed from', lastVideoId, 'to', currentVideoId, isShorts ? '(Short)' : '');
+    lastVideoId = currentVideoId;
     lastUrl = location.href;
     aiBannerShown = false;
     aiContentDetected = false;
     lastAnalyzedVideoId = null;
     stopPeriodicAIFlash();
     hideAllOverlays();
-    console.log('🛡️ URL changed, checking video...');
     checkVideo();
   }
   
-  // Check if ad is playing and hide overlays
-  if (isAdPlaying()) {
-    hideAllOverlays();
+  // ONLY check for ads on regular videos - NEVER on Shorts
+  if (!isShorts) {
+    const adPlaying = isAdPlaying();
+    if (adPlaying && !adCheckActive) {
+      adCheckActive = true;
+      hideAllOverlays();
+      console.log('🛡️ Ad started, hiding overlays');
+    } else if (!adPlaying && adCheckActive) {
+      adCheckActive = false;
+      console.log('🛡️ Ad finished');
+      // Re-show results if we have them cached
+      if (lastAnalyzedVideoId) {
+        chrome.runtime.sendMessage(
+          { type: 'GET_CACHED_ANALYSIS', videoId: lastAnalyzedVideoId },
+          (response) => {
+            if (response && response.success && response.data) {
+              setTimeout(() => showResults(response.data), 1000);
+            }
+          }
+        );
+      }
+    }
   }
-}, 1000);
+}, 2000); // Check every 2 seconds
 
 /**
  * Detect if a YouTube ad is currently playing
+ * ONLY for regular videos - Shorts don't have pre-roll ads the same way
  */
 function isAdPlaying() {
-  // Method 1: Check for ad overlay elements
-  const adOverlay = document.querySelector('.ytp-ad-player-overlay, .ytp-ad-overlay-container, .ytp-ad-module');
-  if (adOverlay) return true;
+  // NEVER report ad playing on Shorts - they use different ad format
+  const isShorts = location.pathname.includes('/shorts/');
+  if (isShorts) {
+    return false;
+  }
   
-  // Method 2: Check for "Skip Ad" button
-  const skipButton = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button');
-  if (skipButton) return true;
-  
-  // Method 3: Check for ad badge in video player
-  const adBadge = document.querySelector('.ytp-ad-badge, .ytp-ad-text');
-  if (adBadge) return true;
-  
-  // Method 4: Check for ad preview text
-  const adPreview = document.querySelector('.ytp-ad-preview-container, .ytp-ad-simple-ad-badge');
-  if (adPreview) return true;
-  
-  // Method 5: Check video player class for ad state
+  // Method 1: Check video player class for ad state (most reliable for regular videos)
   const videoPlayer = document.querySelector('.html5-video-player');
-  if (videoPlayer && videoPlayer.classList.contains('ad-showing')) return true;
+  if (videoPlayer && videoPlayer.classList.contains('ad-showing')) {
+    console.log('🛡️ Ad detected via .ad-showing class');
+    return true;
+  }
   
-  // Method 6: Check for promoted/sponsored content markers
-  const promoted = document.querySelector('[aria-label*="Sponsored"], [aria-label*="Ad"]');
-  if (promoted && promoted.closest('.ytd-video-renderer, .ytd-rich-item-renderer')) return false; // This is search result ads, not video ads
+  // Method 2: Check for "Skip Ad" button (definitive signal)
+  const skipButton = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button');
+  if (skipButton && skipButton.offsetParent !== null) {
+    console.log('🛡️ Ad detected via skip button');
+    return true;
+  }
+  
+  // Method 3: Check for ad preview countdown
+  const adPreview = document.querySelector('.ytp-ad-preview-container');
+  if (adPreview && adPreview.offsetParent !== null) {
+    console.log('🛡️ Ad detected via preview container');
+    return true;
+  }
+  
+  // Method 4: Check for ad overlay elements
+  const adOverlay = document.querySelector('.ytp-ad-player-overlay');
+  if (adOverlay && adOverlay.offsetParent !== null) {
+    console.log('🛡️ Ad detected via overlay');
+    return true;
+  }
   
   return false;
 }
@@ -996,67 +1049,92 @@ function setupVideoEndListener(aiMessage) {
 }
 
 async function checkVideo() {
+  const isShorts = location.pathname.includes('/shorts/');
   const videoId = getVideoId();
   
+  console.log('🛡️ ========================================');
+  console.log('🛡️ checkVideo() called');
+  console.log('🛡️ Video ID:', videoId);
+  console.log('🛡️ Is Shorts:', isShorts);
+  console.log('🛡️ URL:', location.href);
+  console.log('🛡️ Settings:', JSON.stringify(userSettings));
+  console.log('🛡️ Last analyzed:', lastAnalyzedVideoId);
+  console.log('🛡️ ========================================');
+  
   if (!videoId) {
-    console.log('🛡️ No video ID found');
+    console.log('🛡️ ❌ No video ID found - returning');
     return;
   }
   
   // Check if auto-analyze is enabled
   if (!userSettings.autoAnalyze) {
-    console.log('🛡️ Auto-analyze disabled, skipping');
+    console.log('🛡️ ❌ Auto-analyze disabled, skipping');
     return;
   }
   
   // Check if both features are disabled - nothing to do
   if (!userSettings.enableSafety && !userSettings.enableAIDetection) {
-    console.log('🛡️ All detection features disabled');
-    return;
-  }
-  
-  // Skip if ad is playing
-  if (isAdPlaying()) {
-    console.log('🛡️ Ad detected, skipping analysis');
-    hideAllOverlays();
+    console.log('🛡️ ❌ All detection features disabled');
     return;
   }
   
   // Skip if we already analyzed this video
   if (videoId === lastAnalyzedVideoId) {
-    console.log('🛡️ Already analyzed this video');
+    console.log('🛡️ ⏭️ Already analyzed this video:', lastAnalyzedVideoId);
     return;
   }
 
-  console.log('🛡️ Analyzing video:', videoId);
+  // For regular videos (not Shorts), skip if ad is playing
+  // NEVER skip for Shorts!
+  if (!isShorts && isAdPlaying()) {
+    console.log('🛡️ ⏳ Ad detected on regular video, waiting...');
+    setTimeout(() => {
+      if (!isAdPlaying()) checkVideo();
+    }, 5000);
+    return;
+  }
+
+  console.log('🛡️ ✅ *** STARTING ANALYSIS *** Video:', videoId, isShorts ? '(Short)' : '(Regular)');
   lastAnalyzedVideoId = videoId;
 
-  // Use background script to make API call (avoids CORS issues)
+  // For regular videos, wait 2 seconds. For Shorts, go immediately.
+  if (!isShorts) {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+
+  console.log('🛡️ 📤 Sending ANALYZE_VIDEO to background...');
+  
   chrome.runtime.sendMessage(
     { type: 'ANALYZE_VIDEO', videoId: videoId },
     (response) => {
+      console.log('🛡️ 📥 Response from background:', response);
+      console.log('🛡️ Last error:', chrome.runtime.lastError);
+      
       if (chrome.runtime.lastError) {
-        console.error('🛡️ Extension error:', chrome.runtime.lastError);
+        console.error('🛡️ ❌ Extension error:', chrome.runtime.lastError.message);
         return;
       }
       
       if (response && response.success) {
-        console.log('🛡️ Analysis results:', response.data);
+        console.log('🛡️ ✅ Analysis received! Warnings:', response.data?.warnings?.length || 0);
         showResults(response.data);
       } else {
-        console.error('🛡️ Analysis failed:', response?.error);
+        console.error('🛡️ ❌ Analysis failed:', response?.error || 'Unknown error');
       }
     }
   );
 }
 
 function showResults(results) {
+  console.log('🛡️ showResults called with:', JSON.stringify(results, null, 2).substring(0, 500));
+  
   const overlay = document.getElementById('safety-overlay');
   const scoreEl = document.getElementById('safety-score');
   const commentsEl = document.getElementById('warning-comments');
   const aiBanner = document.getElementById('ai-content-banner');
 
   if (!overlay || !aiBanner) {
+    console.log('🛡️ Overlay missing, injecting...');
     if (!overlay) injectOverlay();
     if (!aiBanner) injectAIBanner();
     return showResults(results);
@@ -1135,30 +1213,53 @@ function showResults(results) {
     w.category !== 'AI Generated Content' // Don't count AI as danger
   ) : [];
   
-  // STRICT CRITERIA: Only show overlay if safety is enabled AND:
-  // 1. Score is VERY low (< 35) AND has multiple warnings, OR
-  // 2. Has 3+ high-severity community warnings about danger
+  // Check for critical child safety warnings (always show these!)
+  const childSafetyWarnings = warnings.filter(w => 
+    w.category === 'Child Safety' || 
+    w.severity === 'critical' ||
+    (w.message && w.message.includes('SAFETY'))
+  );
+  
+  console.log('🛡️ Safety analysis:', {
+    score: score,
+    totalWarnings: warnings.length,
+    highSeverityWarnings: highSeverityWarnings.length,
+    childSafetyWarnings: childSafetyWarnings.length,
+    enableSafety: userSettings.enableSafety,
+    warningCategories: warnings.map(w => w.category)
+  });
+  
+  // CRITERIA: Show overlay if safety is enabled AND:
+  // 1. ANY child safety warning (critical!), OR
+  // 2. Score is VERY low (< 35) AND has multiple warnings, OR
+  // 3. Has 3+ high-severity community warnings about danger
   const isDangerous = userSettings.enableSafety && (
+    childSafetyWarnings.length > 0 ||  // Always show child safety warnings!
     (score < 35 && highSeverityWarnings.length >= 2) || 
     highSeverityWarnings.length >= 3
   );
 
   if (!isDangerous) {
-    console.log('🛡️ Video appears safe, score:', score, 'high-severity warnings:', highSeverityWarnings.length);
+    console.log('🛡️ Video appears safe, score:', score, 'high-severity warnings:', highSeverityWarnings.length, 'child safety:', childSafetyWarnings.length);
     overlay.style.display = 'none';
     return;
   }
 
-  console.log('🛡️ DANGER! Score:', score, 'High-severity warnings:', highSeverityWarnings.length);
+  console.log('🛡️ DANGER! Score:', score, 'High-severity warnings:', highSeverityWarnings.length, 'Child safety:', childSafetyWarnings.length);
 
   // Update score
   scoreEl.textContent = score;
 
-  // Show warning comments (only high severity)
-  if (highSeverityWarnings.length > 0) {
-    commentsEl.innerHTML = highSeverityWarnings.slice(0, 4).map(w => `
-      <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 15px; margin-bottom: 8px; background: rgba(255, 68, 68, 0.15); border-left: 3px solid #ff4444; border-radius: 0 8px 8px 0;">
-        <span style="font-size: 16px;">💬</span>
+  // Combine all warnings to show (child safety + high severity)
+  const allDangerWarnings = [...childSafetyWarnings, ...highSeverityWarnings.filter(w => 
+    !childSafetyWarnings.some(cs => cs.message === w.message)
+  )];
+
+  // Show warning comments
+  if (allDangerWarnings.length > 0) {
+    commentsEl.innerHTML = allDangerWarnings.slice(0, 5).map(w => `
+      <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 15px; margin-bottom: 8px; background: ${w.category === 'Child Safety' ? 'rgba(255, 152, 0, 0.2)' : 'rgba(255, 68, 68, 0.15)'}; border-left: 3px solid ${w.category === 'Child Safety' ? '#ff9800' : '#ff4444'}; border-radius: 0 8px 8px 0;">
+        <span style="font-size: 16px;">${w.category === 'Child Safety' ? '👶⚠️' : '💬'}</span>
         <span style="color: #eee; font-size: 12px; line-height: 1.4;">${escapeHtml(w.message)}</span>
       </div>
     `).join('');
@@ -1200,8 +1301,25 @@ function showResults(results) {
     altSection.style.display = 'none';
   }
 
+  // Add YouTube API attribution (required by TOS)
+  addYouTubeAttribution(overlay);
+
   // Show the overlay!
   overlay.style.display = 'flex';
+}
+
+/**
+ * Add YouTube API attribution (required by YouTube TOS)
+ */
+function addYouTubeAttribution(container) {
+  // Check if attribution already exists
+  if (container.querySelector('.yt-api-attribution')) return;
+  
+  const attr = document.createElement('div');
+  attr.className = 'yt-api-attribution';
+  attr.innerHTML = '📊 Data provided by <a href="https://developers.google.com/youtube" target="_blank" style="color: #888; text-decoration: underline;">YouTube Data API</a>';
+  attr.style.cssText = 'font-size: 10px; color: #666; text-align: center; padding: 8px; margin-top: auto; border-top: 1px solid #333;';
+  container.appendChild(attr);
 }
 
 function escapeHtml(text) {
