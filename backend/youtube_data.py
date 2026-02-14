@@ -5,8 +5,20 @@ Fetches video metadata, comments, and other data using YouTube Data API
 
 import re
 import httpx
+import logging
 from typing import Optional
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
+
+# --- Comment analysis constants ---
+MAX_COMMENT_TEXT_LENGTH = 1000     # Truncation limit per comment (ReDoS prevention)
+LIKE_WEIGHT_DIVISOR = 10           # Divisor for comment likes weighting
+MAX_SAFETY_WARNINGS = 10           # Max safety warning comments to collect
+MAX_AI_WARNINGS = 5                # Max AI content warning comments to collect
+WARNING_RATIO_MULTIPLIER = 50      # Multiplier for warning ratio penalty
+TOP_CONCERNS_LIMIT = 5             # Number of top concerns to return
+COMMENT_SEVERITY_WEIGHTS = {"high": 30, "medium": 15, "low": 5}  # Penalty per severity level
 
 
 @dataclass
@@ -32,8 +44,15 @@ class YouTubeDataFetcher:
     """
     
     def __init__(self, api_key: Optional[str] = None):
+        """Initialize with optional YouTube Data API key."""
         self.api_key = api_key
         self.client = httpx.AsyncClient(timeout=30.0)
+
+    async def __aenter__(self) -> "YouTubeDataFetcher":
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        await self.close()
     
     async def get_comments(self, video_id: str, max_results: int = 100) -> list[Comment]:
         """
@@ -46,6 +65,36 @@ class YouTubeDataFetcher:
         else:
             return await self._scrape_comments(video_id, max_results)
     
+    async def _make_request_with_retry(self, url: str, params: dict, retries: int = 3) -> Optional[httpx.Response]:
+        """Make HTTP request with retry logic for transient errors"""
+        import asyncio
+        delay = 1.0
+        last_exception = None
+        
+        for attempt in range(retries):
+            try:
+                response = await self.client.get(url, params=params)
+                # Success or client error (4xx) - return immediately
+                # 429 (Too Many Requests) or 403 (Forbidden) with quote errors should arguably stop retries, 
+                # but for simplicity we treat 5xx as retryable
+                if response.status_code < 500:
+                    return response
+                
+                # Server error 5xx - retry
+                logger.warning(f"Server error {response.status_code}, retrying (attempt {attempt+1}/{retries})...")
+            except (httpx.RequestError, httpx.TimeoutException) as e:
+                # Network error - retry
+                last_exception = e
+                logger.warning(f"Network error {e!r}, retrying (attempt {attempt+1}/{retries})...")
+            
+            if attempt < retries - 1:
+                await asyncio.sleep(delay)
+                delay *= 2.0
+                
+        if last_exception:
+            raise last_exception
+        return None
+
     async def _fetch_comments_api(self, video_id: str, max_results: int) -> list[Comment]:
         """Fetch comments using official YouTube Data API"""
         url = "https://www.googleapis.com/youtube/v3/commentThreads"
@@ -58,8 +107,8 @@ class YouTubeDataFetcher:
         }
         
         try:
-            response = await self.client.get(url, params=params)
-            if response.status_code == 200:
+            response = await self._make_request_with_retry(url, params)
+            if response and response.status_code == 200:
                 data = response.json()
                 comments = []
                 for item in data.get("items", []):
@@ -71,10 +120,10 @@ class YouTubeDataFetcher:
                     ))
                 return comments
             else:
-                print(f"YouTube API error: {response.status_code}")
+                logger.error(f"YouTube API error: {response.status_code}")
                 return []
         except Exception as e:
-            print(f"Error fetching comments: {e}")
+            logger.error(f"Error fetching comments: {e}")
             return []
     
     async def _scrape_comments(self, video_id: str, max_results: int) -> list[Comment]:
@@ -84,7 +133,7 @@ class YouTubeDataFetcher:
         """
         # For now, return empty - scraping YouTube is complex
         # The API key method is recommended
-        print("Note: YouTube API key required for comment analysis")
+        logger.info("Note: YouTube API key required for comment analysis")
         return []
     
     async def get_video_metadata(self, video_id: str) -> Optional[VideoMetadata]:
@@ -103,8 +152,8 @@ class YouTubeDataFetcher:
         }
         
         try:
-            response = await self.client.get(url, params=params)
-            if response.status_code == 200:
+            response = await self._make_request_with_retry(url, params)
+            if response and response.status_code == 200:
                 data = response.json()
                 if data.get("items"):
                     snippet = data["items"][0]["snippet"]
@@ -116,16 +165,17 @@ class YouTubeDataFetcher:
                         category=snippet.get("categoryId", "")
                     )
         except Exception as e:
-            print(f"Error fetching metadata: {e}")
+            logger.error(f"Error fetching metadata: {e}")
         return None
     
-    async def close(self):
+    async def close(self) -> None:
         await self.client.aclose()
 
 
 # Comment danger patterns - STRICT patterns for actual safety warnings
-# These should only match when someone is genuinely warning about danger
+# Pre-compiled at module load for performance
 COMMENT_WARNING_PATTERNS = [
+    (re.compile(p, re.IGNORECASE), s, d) for p, s, d in [
     # Direct danger warnings - must be explicit warnings
     (r"this is (dangerous|unsafe|a hazard)", "high", "Users flagging content as dangerous"),
     (r"(don'?t|do not|never) (do|try|attempt) this", "high", "Users warning against attempting this"),
@@ -165,10 +215,11 @@ COMMENT_WARNING_PATTERNS = [
     # Explicit professional warnings
     (r"(call|hire|consult) (a |an )?(professional|electrician|plumber|doctor)", "medium", "Professional consultation needed"),
     (r"against (building |fire )?code|code violation", "medium", "Building code violations"),
-]
+]]
 
-# AI/Fake content detection patterns
+# AI/Fake content detection patterns - pre-compiled
 AI_CONTENT_PATTERNS = [
+    (re.compile(p, re.IGNORECASE), s, d) for p, s, d in [
     # Direct AI mentions (most common comment types)
     (r"^ai$", "high", "AI content confirmed by comment"),  # Standalone "AI" or "Ai"
     (r"^ai[\.\!\?]?$", "high", "AI content confirmed by comment"),  # "AI." or "AI!"
@@ -188,7 +239,7 @@ AI_CONTENT_PATTERNS = [
     (r"\bai (garbage|trash|crap|shit|bs)\b", "high", "Negative AI reaction"),
     (r"\b100% (ai|fake|cgi)\b", "high", "Strong AI/fake claim"),
     (r"\bso fake\b|\bso ai\b", "high", "Fake/AI content noted"),
-]
+]]
 
 
 def analyze_comments(comments: list[Comment]) -> dict:
@@ -210,24 +261,24 @@ def analyze_comments(comments: list[Comment]) -> dict:
     ai_concern_counts = {}
     
     for comment in comments:
-        text = comment.text.lower()
+        text = comment.text[:MAX_COMMENT_TEXT_LENGTH].lower()  # Truncate to prevent ReDoS
         matched = False
-        
+
         # Check safety warning patterns
         for pattern, severity, description in COMMENT_WARNING_PATTERNS:
-            if re.search(pattern, text, re.IGNORECASE):
+            if pattern.search(text):
                 results["warning_comments"] += 1
                 matched = True
-                
+
                 # Weight by likes (popular warnings are more significant)
-                weight = 1 + (comment.likes / 10)
-                
+                weight = 1 + (comment.likes / LIKE_WEIGHT_DIVISOR)
+
                 if description not in concern_counts:
                     concern_counts[description] = {"count": 0, "weight": 0, "severity": severity}
                 concern_counts[description]["count"] += 1
                 concern_counts[description]["weight"] += weight
-                
-                if len(results["warnings"]) < 10:
+
+                if len(results["warnings"]) < MAX_SAFETY_WARNINGS:
                     results["warnings"].append({
                         "severity": severity,
                         "category": "Community Warning",
@@ -236,23 +287,23 @@ def analyze_comments(comments: list[Comment]) -> dict:
                         "source": f"@{comment.author}"
                     })
                 break
-        
+
         # Check AI content patterns (separate from safety)
         if not matched:
             for pattern, severity, description in AI_CONTENT_PATTERNS:
-                if re.search(pattern, text, re.IGNORECASE):
+                if pattern.search(text):
                     results["ai_comments"] += 1
                     results["has_ai_content"] = True
-                    
-                    weight = 1 + (comment.likes / 10)
-                    
+
+                    weight = 1 + (comment.likes / LIKE_WEIGHT_DIVISOR)
+
                     if description not in ai_concern_counts:
                         ai_concern_counts[description] = {"count": 0, "weight": 0, "severity": severity}
                     ai_concern_counts[description]["count"] += 1
                     ai_concern_counts[description]["weight"] += weight
-                    
+
                     # Add AI warnings separately
-                    if len([w for w in results["warnings"] if w["category"] == "AI Content"]) < 5:
+                    if len([w for w in results["warnings"] if w["category"] == "AI Content"]) < MAX_AI_WARNINGS:
                         results["warnings"].append({
                             "severity": severity,
                             "category": "AI Content",
@@ -261,21 +312,21 @@ def analyze_comments(comments: list[Comment]) -> dict:
                             "source": f"@{comment.author}"
                         })
                     break
-    
+
     # Calculate warning score based on community feedback
     if comments:
         warning_ratio = results["warning_comments"] / len(comments)
         severity_penalty = sum(
-            c["weight"] * (30 if c["severity"] == "high" else 15 if c["severity"] == "medium" else 5)
+            c["weight"] * COMMENT_SEVERITY_WEIGHTS.get(c["severity"], 5)
             for c in concern_counts.values()
         )
-        results["warning_score"] = max(0, min(100, 100 - int(severity_penalty) - int(warning_ratio * 50)))
+        results["warning_score"] = max(0, min(100, 100 - int(severity_penalty) - int(warning_ratio * WARNING_RATIO_MULTIPLIER)))
     
     # Top concerns sorted by weight
     results["top_concerns"] = sorted(
         [{"concern": k, **v} for k, v in concern_counts.items()],
         key=lambda x: x["weight"],
         reverse=True
-    )[:5]
+    )[:TOP_CONCERNS_LIMIT]
     
     return results

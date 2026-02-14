@@ -5,8 +5,10 @@ Think of this like an antivirus definition database, but for dangerous content
 
 import json
 import os
+import logging
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
 
 class SafetyDatabase:
     """
@@ -22,6 +24,7 @@ class SafetyDatabase:
     """
     
     def __init__(self, db_path: str = None):
+        """Initialize and load signatures from db_path (defaults to safety-db/)."""
         if db_path is None:
             # Default to safety-db folder relative to backend
             db_path = Path(__file__).parent.parent / "safety-db"
@@ -32,7 +35,7 @@ class SafetyDatabase:
         
         self._load_database()
     
-    def _load_database(self):
+    def _load_database(self) -> None:
         """Load all signatures and categories from JSON files"""
         
         # Load categories
@@ -56,17 +59,17 @@ class SafetyDatabase:
                         else:
                             self.signatures.append(sigs)
                 except Exception as e:
-                    print(f"Error loading {sig_file}: {e}")
+                    logger.error(f"Error loading {sig_file}: {e}")
         
         # If no signatures loaded, use defaults
         if not self.signatures:
             self.signatures = self._get_default_signatures()
     
-    def get_all_signatures(self) -> list:
+    def get_all_signatures(self) -> list[dict]:
         """Return all loaded signatures"""
         return self.signatures
     
-    def get_signatures_by_category(self, category: str) -> list:
+    def get_signatures_by_category(self, category: str) -> list[dict]:
         """Get signatures for a specific category"""
         return [s for s in self.signatures if s.get('category') == category]
     
@@ -134,7 +137,7 @@ class SafetyDatabase:
             }
         }
     
-    def _get_default_signatures(self) -> list:
+    def _get_default_signatures(self) -> list[dict]:
         """
         Default danger signatures - these are the "virus definitions"
         for dangerous content patterns.

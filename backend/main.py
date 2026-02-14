@@ -10,12 +10,26 @@ https://developers.google.com/youtube
 """
 
 import os
+import logging
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 import re
 import time
+import asyncio
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 from typing import Optional
 import uvicorn
 
@@ -37,19 +51,20 @@ try:
     from vision_analyzer import VisionAnalyzer
     VISION_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Vision analyzer not available: {e}")
+    logger.warning(f"Vision analyzer not available: {e}")
     VISION_AVAILABLE = False
     VisionAnalyzer = None
 
 app = FastAPI(
     title="YouTube Safety Inspector API",
     description="Analyzes YouTube videos for potentially dangerous or misleading content",
-    version="1.0.0"
+    version="2.1.0"
 )
 
 # Security headers middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
+    """Attach security headers (X-Content-Type-Options, X-Frame-Options, etc.)."""
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -57,13 +72,69 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
 
-# CORS for Chrome extension (restricted to secure origins)
+# Per-IP rate limiting middleware
+_rate_limit_store: dict[str, list[float]] = {}
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMITS = {
+    "/analyze": 10,      # 10 requests per minute
+    "/health": 60,       # 60 requests per minute
+    "/ai-tutorials": 15,
+    "/ai-entertainment": 15,
+    "/real-alternatives": 15,
+}
+DEFAULT_RATE_LIMIT = 30  # For unlisted endpoints
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Enforce per-IP, per-endpoint rate limits using a sliding window."""
+    client_ip = request.client.host if request.client else "unknown"
+    path = request.url.path.rstrip("/")
+    limit = RATE_LIMITS.get(path, DEFAULT_RATE_LIMIT)
+    key = f"{client_ip}:{path}"
+
+    now = time.time()
+    timestamps = _rate_limit_store.get(key, [])
+    # Remove old timestamps outside the window
+    timestamps = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
+
+    if len(timestamps) >= limit:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=429,
+            content={"detail": f"Rate limit exceeded. Max {limit} requests per minute for {path}."}
+        )
+
+    timestamps.append(now)
+    _rate_limit_store[key] = timestamps
+
+    # Periodic cleanup of old entries (every ~100 requests)
+    if len(_rate_limit_store) > 1000:
+        cutoff = now - RATE_LIMIT_WINDOW
+        _rate_limit_store.clear()
+
+    return await call_next(request)
+
+# CORS for Chrome extension and local development
+# Security: Only allow specific extension IDs (set ALLOWED_EXTENSION_IDS in .env)
+_allowed_ext_ids = os.environ.get("ALLOWED_EXTENSION_IDS", "").strip()
+
+if _allowed_ext_ids:
+    # Production: Only allow specific extension IDs
+    _ext_id_list = [eid.strip() for eid in _allowed_ext_ids.split(",") if eid.strip()]
+    _ext_pattern = "|".join(re.escape(eid) for eid in _ext_id_list)
+    ALLOWED_ORIGIN_REGEX = rf"^(http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?|chrome-extension://({_ext_pattern}))$"
+    logger.info(f"CORS: Locked to {len(_ext_id_list)} extension ID(s)")
+else:
+    # Dev mode: Allow any extension ID but log warning
+    ALLOWED_ORIGIN_REGEX = r"^(http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?|chrome-extension://[a-z]{32})$"
+    logger.warning("CORS: No ALLOWED_EXTENSION_IDS set - allowing any extension (dev mode). Set ALLOWED_EXTENSION_IDS in .env for production.")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["chrome-extension://*", "http://localhost:*", "http://127.0.0.1:*", "https://localhost:*"],
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 # Initialize components
@@ -80,57 +151,65 @@ if VISION_AVAILABLE and openai_api_key:
 else:
     vision_analyzer = None
 
-if youtube_api_key:
-    print("✅ YouTube API key found - comment analysis enabled")
-else:
-    print("⚠️ No YOUTUBE_API_KEY - comment analysis disabled (set env var to enable)")
-
-if VISION_AVAILABLE and openai_api_key:
-    print("✅ OpenAI API key found - Vision analysis enabled")
-else:
-    print("⚠️ Vision analysis disabled (requires OPENAI_API_KEY + yt-dlp + ffmpeg)")
+# Startup validation - log feature availability
+_features = {
+    "comment_analysis": bool(youtube_api_key),
+    "vision_analysis": VISION_AVAILABLE and bool(openai_api_key),
+    "alternatives_search": bool(youtube_api_key),
+}
+logger.info("=== Feature Availability ===")
+for feature, enabled in _features.items():
+    status = "ENABLED" if enabled else "DISABLED"
+    logger.info(f"  {feature}: {status}")
+if not youtube_api_key:
+    logger.warning("YOUTUBE_API_KEY not set. Comment analysis and alternatives search disabled. Set env var to enable.")
+if not (VISION_AVAILABLE and openai_api_key):
+    logger.warning("Vision analysis disabled. Requires OPENAI_API_KEY + yt-dlp + ffmpeg.")
 
 # API Quota Tracking (YouTube daily limit: 10,000)
 API_QUOTA_LIMIT = 10000
 API_QUOTA_WARN = 9000  # Warn at 90%
 api_quota_tracker = {"count": 0, "date": time.strftime("%Y-%m-%d")}
+_quota_lock = asyncio.Lock()
 
-def check_quota_available(cost: int = 1) -> bool:
+async def check_quota_available(cost: int = 1) -> bool:
     """Check if API quota is available before making a call"""
-    today = time.strftime("%Y-%m-%d")
-    if api_quota_tracker["date"] != today:
-        api_quota_tracker["count"] = 0
-        api_quota_tracker["date"] = today
-    return (api_quota_tracker["count"] + cost) <= API_QUOTA_LIMIT
+    async with _quota_lock:
+        today = time.strftime("%Y-%m-%d")
+        if api_quota_tracker["date"] != today:
+            api_quota_tracker["count"] = 0
+            api_quota_tracker["date"] = today
+        return (api_quota_tracker["count"] + cost) <= API_QUOTA_LIMIT
 
-def log_api_call(cost: int):
+async def log_api_call(cost: int):
     """Track YouTube API quota usage with daily reset and enforcement"""
-    today = time.strftime("%Y-%m-%d")
-    if api_quota_tracker["date"] != today:
-        api_quota_tracker["count"] = 0
-        api_quota_tracker["date"] = today
-    
-    # Enforce hard limit
-    if api_quota_tracker["count"] + cost > API_QUOTA_LIMIT:
-        raise HTTPException(
-            status_code=429, 
-            detail=f"Daily API quota exceeded ({API_QUOTA_LIMIT}). Try again tomorrow."
-        )
-    
-    api_quota_tracker["count"] += cost
-    
-    if api_quota_tracker["count"] > API_QUOTA_WARN:
-        print(f"⚠️ WARNING: {api_quota_tracker['count']}/{API_QUOTA_LIMIT} daily YouTube API quota used!")
-    
-    return api_quota_tracker["count"]
+    async with _quota_lock:
+        today = time.strftime("%Y-%m-%d")
+        if api_quota_tracker["date"] != today:
+            api_quota_tracker["count"] = 0
+            api_quota_tracker["date"] = today
+
+        # Enforce hard limit
+        if api_quota_tracker["count"] + cost > API_QUOTA_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Daily API quota exceeded ({API_QUOTA_LIMIT}). Try again tomorrow."
+            )
+
+        api_quota_tracker["count"] += cost
+
+        if api_quota_tracker["count"] > API_QUOTA_WARN:
+            logger.warning(f"Quota warning: {api_quota_tracker['count']}/{API_QUOTA_LIMIT} daily YouTube API quota used!")
+
+        return api_quota_tracker["count"]
 
 # Request/Response models
 class AnalyzeRequest(BaseModel):
     video_id: str
     # Optional: Extension can pass scraped metadata (works without YOUTUBE_API_KEY)
-    title: Optional[str] = None
-    description: Optional[str] = None
-    channel: Optional[str] = None
+    title: Optional[str] = Field(None, max_length=500)
+    description: Optional[str] = Field(None, max_length=5000)
+    channel: Optional[str] = Field(None, max_length=200)
     
     @field_validator('video_id')
     @classmethod
@@ -189,7 +268,7 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy", 
-        "version": "1.0.0",
+        "version": "2.1.0",
         "api_quota": {
             "used_today": api_quota_tracker["count"],
             "daily_limit": 10000,
@@ -256,7 +335,7 @@ async def analyze_video(request: AnalyzeRequest):
                     })
                     
             except Exception as ve:
-                print(f"Vision analysis error (non-fatal): {ve}")
+                logger.warning(f"Vision analysis error (non-fatal): {ve}")
                 results['vision_analysis'] = {
                     'is_ai_generated': False,
                     'ai_confidence': 0,
@@ -304,7 +383,7 @@ async def analyze_video(request: AnalyzeRequest):
                 }
                 
             except Exception as ae:
-                print(f"Alternatives finder error (non-fatal): {ae}")
+                logger.warning(f"Alternatives finder error (non-fatal): {ae}")
                 results['safe_alternatives'] = {
                     'enabled': False,
                     'alternatives': [],
@@ -323,19 +402,20 @@ async def analyze_video(request: AnalyzeRequest):
         quota_cost = 2  # Base: comments + metadata
         if results.get('safe_alternatives', {}).get('alternatives'):
             quota_cost += 100  # Search API call
-        current_usage = log_api_call(quota_cost)
+        current_usage = await log_api_call(quota_cost)
         results['api_quota_used'] = current_usage
         
         return results
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Analysis endpoint error: {e}")
+        raise HTTPException(status_code=500, detail="Internal analysis error")
 
 
 # Request model for AI content discovery
 class AIContentRequest(BaseModel):
-    subject: Optional[str] = None  # e.g., "dogs", "landscapes" - detected from original video
+    subject: Optional[str] = Field(None, max_length=100)  # e.g., "dogs", "landscapes"
     prefer_shorts: bool = False
-    max_results: int = 8
+    max_results: int = Field(8, ge=1, le=50)
 
 class AIContentResponse(BaseModel):
     enabled: bool
@@ -361,7 +441,8 @@ async def get_ai_tutorials(request: AIContentRequest):
         )
         return results
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"AI tutorials endpoint error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch AI tutorials")
 
 
 @app.post("/ai-entertainment")
@@ -379,7 +460,8 @@ async def get_ai_entertainment(request: AIContentRequest):
         )
         return results
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"AI entertainment endpoint error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch AI entertainment")
 
 
 @app.post("/real-alternatives")
@@ -394,11 +476,11 @@ async def get_real_alternatives(request: AIContentRequest):
         subject = request.subject.lower() if request.subject else None
         
         # Get animal-specific videos if we detected an animal
-        if subject and subject in alternatives_finder.FALLBACK_REAL_ANIMALS:
-            real_videos = alternatives_finder.FALLBACK_REAL_ANIMALS[subject][:max_results]
+        if subject and subject in alternatives_finder.fallback_real_animals:
+            real_videos = alternatives_finder.fallback_real_animals[subject][:max_results]
             animal_name = subject.title()
         else:
-            real_videos = alternatives_finder.FALLBACK_REAL_ANIMALS["default"][:max_results]
+            real_videos = alternatives_finder.fallback_real_animals["default"][:max_results]
             animal_name = "Wildlife"
         
         return {
@@ -409,7 +491,8 @@ async def get_real_alternatives(request: AIContentRequest):
             "detected_subject": subject
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Real alternatives endpoint error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch alternatives")
 
 
 @app.get("/report/{video_id}", response_class=HTMLResponse)
@@ -419,7 +502,8 @@ async def get_full_report(video_id: str):
         results = await analyzer.analyze(video_id)
         return generate_report_html(results)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Report generation error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate report")
 
 
 @app.get("/signatures")
@@ -434,8 +518,10 @@ async def get_categories():
     return safety_db.get_categories()
 
 
+
 def generate_report_html(results: dict) -> str:
     """Generate a detailed HTML report"""
+    import html
     
     score = results.get('safety_score', 0)
     if score < 40:
@@ -450,13 +536,17 @@ def generate_report_html(results: dict) -> str:
     
     warnings_html = ""
     for w in results.get('warnings', []):
+        severity = html.escape(str(w.get('severity', 'low')))
+        category = html.escape(str(w.get('category', 'Unknown')))
+        message = html.escape(str(w.get('message', '')))
+        
         warnings_html += f"""
-        <div class="warning-item {w['severity']}">
+        <div class="warning-item {severity}">
             <div class="warning-header">
-                <span class="severity-badge">{w['severity'].upper()}</span>
-                <span class="category">{w['category']}</span>
+                <span class="severity-badge">{severity.upper()}</span>
+                <span class="category">{category}</span>
             </div>
-            <p>{w['message']}</p>
+            <p>{message}</p>
         </div>
         """
     
@@ -465,20 +555,27 @@ def generate_report_html(results: dict) -> str:
     
     categories_html = ""
     for name, data in results.get('categories', {}).items():
-        status = 'flagged' if data['flagged'] else 'safe'
+        status = 'flagged' if data.get('flagged') else 'safe'
+        safe_name = html.escape(str(name))
+        emoji = html.escape(str(data.get('emoji', '')))
+        score_val = data.get('score', 0)
+        
         categories_html += f"""
         <div class="category-card {status}">
-            <span class="emoji">{data['emoji']}</span>
-            <span class="name">{name}</span>
-            <span class="score">{data['score']}/100</span>
+            <span class="emoji">{emoji}</span>
+            <span class="name">{safe_name}</span>
+            <span class="score">{score_val}/100</span>
         </div>
         """
+    
+    video_id_safe = html.escape(str(results.get('video_id', '')))
+    summary_safe = html.escape(str(results.get('summary', 'Analysis complete.')))
     
     return f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Safety Report - {results['video_id']}</title>
+        <title>Safety Report - {video_id_safe}</title>
         <style>
             * {{ margin: 0; padding: 0; box-sizing: border-box; }}
             body {{
@@ -624,9 +721,7 @@ def generate_report_html(results: dict) -> str:
 
 
 if __name__ == "__main__":
-    print("🛡️ YouTube Safety Inspector API")
-    print("=" * 40)
-    print("Starting server at http://localhost:8000")
-    print("API docs: http://localhost:8000/docs")
-    print("=" * 40)
+    logger.info("YouTube Safety Inspector API")
+    logger.info("Starting server at http://localhost:8000")
+    logger.info("API docs: http://localhost:8000/docs")
     uvicorn.run(app, host="0.0.0.0", port=8000)

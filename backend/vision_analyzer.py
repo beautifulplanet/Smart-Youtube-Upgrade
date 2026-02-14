@@ -8,11 +8,15 @@ import re
 import base64
 import asyncio
 import httpx
+from pathlib import Path
 from typing import Optional
 from yt_dlp import YoutubeDL
 import tempfile
 import subprocess
 import shutil
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Security: Video ID validation pattern
 VIDEO_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_-]{11}$')
@@ -29,9 +33,9 @@ class VisionAnalyzer:
         self.enabled = bool(self.api_key)
         
         if self.enabled:
-            print("✅ OpenAI API key found - Vision analysis enabled")
+            logger.info("✅ OpenAI API key found - Vision analysis enabled")
         else:
-            print("⚠️ No OPENAI_API_KEY - Vision analysis disabled")
+            logger.warning("⚠️ No OPENAI_API_KEY - Vision analysis disabled")
     
     async def analyze_video_frames(self, video_id: str, num_frames: int = 5) -> dict:
         """
@@ -95,7 +99,7 @@ class VisionAnalyzer:
             }
             
         except Exception as e:
-            print(f"Vision analysis error: {e}")
+            logger.error(f"Vision analysis error: {e}")
             return {
                 "enabled": True,
                 "message": f"Analysis error: {str(e)}",
@@ -125,16 +129,19 @@ class VisionAnalyzer:
                 duration = info.get('duration', 60)
             
             video_path = os.path.join(temp_dir, 'video.mp4')
-            
+
             if not os.path.exists(video_path):
-                # Try finding any video file
+                # Try finding any video file (yt-dlp may use different extension)
                 for f in os.listdir(temp_dir):
                     if f.startswith('video'):
-                        video_path = os.path.join(temp_dir, f)
-                        break
+                        candidate = os.path.join(temp_dir, f)
+                        # Security: ensure path is within temp_dir (prevent traversal)
+                        if Path(candidate).resolve().parent == Path(temp_dir).resolve():
+                            video_path = candidate
+                            break
             
             if not os.path.exists(video_path):
-                print("Could not find downloaded video")
+                logger.error("Could not find downloaded video")
                 return []
             
             # Calculate frame timestamps (evenly distributed)
@@ -156,7 +163,8 @@ class VisionAnalyzer:
                     '-y', frame_path
                 ]
                 
-                result = subprocess.run(cmd, capture_output=True, timeout=30)
+                # Security: shell=False (list args), explicit timeout
+                result = subprocess.run(cmd, capture_output=True, timeout=30, shell=False)
                 
                 if os.path.exists(frame_path):
                     with open(frame_path, 'rb') as f:
@@ -170,7 +178,7 @@ class VisionAnalyzer:
             return frames
             
         except Exception as e:
-            print(f"Frame extraction error: {e}")
+            logger.error(f"Frame extraction error: {e}")
             return []
         finally:
             # Cleanup temp directory
@@ -266,7 +274,7 @@ Be conservative - only flag clear issues. If unsure, don't flag."""
                             "raw_response": content
                         }
                 else:
-                    print(f"Vision API error: {response.status_code}")
+                    logger.error(f"Vision API error: {response.status_code}")
                     return {
                         "frame_num": frame_num,
                         "timestamp": frame_data['timestamp'],
@@ -277,7 +285,7 @@ Be conservative - only flag clear issues. If unsure, don't flag."""
                     }
                     
         except Exception as e:
-            print(f"Frame analysis error: {e}")
+            logger.error(f"Frame analysis error: {e}")
             return {
                 "frame_num": frame_num,
                 "timestamp": frame_data['timestamp'],

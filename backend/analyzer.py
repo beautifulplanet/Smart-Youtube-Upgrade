@@ -20,6 +20,46 @@ from youtube_data import YouTubeDataFetcher, analyze_comments
 # Optional: For AI-powered analysis (uncomment if using OpenAI)
 # import openai
 
+import logging
+logger = logging.getLogger(__name__)
+
+# --- Analysis constants ---
+# Input truncation limits (ReDoS prevention)
+MAX_TITLE_LENGTH = 500
+MAX_DESCRIPTION_LENGTH = 2000
+MAX_CHANNEL_LENGTH = 200
+MAX_FULL_TEXT_LENGTH = 3000
+MAX_SIGNATURE_TEXT_LENGTH = 50000
+
+# Scoring thresholds
+AI_CONTENT_MAX_SCORE = 20          # Max score when AI content detected
+DANGEROUS_ANIMAL_MAX_SCORE = 10    # Max score when dangerous animal/child detected
+DEFAULT_SAFE_SCORE = 95            # Score when no issues found
+BASE_SCORE = 100                   # Starting score before penalties
+
+# Score weighting (transcript vs community feedback)
+TRANSCRIPT_WEIGHT = 0.6            # Weight for transcript analysis when available
+COMMENT_WEIGHT = 0.4               # Weight for comment analysis when transcript available
+NO_TRANSCRIPT_WEIGHT = 0.3         # Weight for transcript when unavailable
+NO_TRANSCRIPT_COMMENT_WEIGHT = 0.7 # Weight for comments when no transcript
+
+# Severity penalty weights for category scoring
+CATEGORY_SEVERITY_WEIGHTS = {"high": 30, "medium": 15, "low": 5}
+
+# Severity penalty weights for overall scoring
+OVERALL_SEVERITY_PENALTIES = {"high": 25, "medium": 12, "low": 5}
+
+# Score weighting for final calculation (base vs categories)
+BASE_SCORE_WEIGHT = 0.6
+CATEGORY_SCORE_WEIGHT = 0.4
+
+# AI detection thresholds
+AI_HASHTAG_THRESHOLD = 2           # Hashtags needed to flag as "very likely AI"
+AI_HASHTAG_WITH_CHANNEL = 1        # Hashtags needed when combined with suspicious channel
+
+# Comment fetching
+MAX_COMMENTS_TO_FETCH = 100
+
 
 class SafetyAnalyzer:
     """
@@ -48,6 +88,7 @@ class SafetyAnalyzer:
     ]
     
     def __init__(self, safety_db: SafetyDatabase, youtube_api_key: Optional[str] = None):
+        """Initialize with safety signature database and optional YouTube API key."""
         self.safety_db = safety_db
         self.signatures = safety_db.get_all_signatures()
         # Get API key from param, env, or None
@@ -55,140 +96,137 @@ class SafetyAnalyzer:
         
         # Suspicious channel name patterns (channels that typically post AI content)
         self._suspicious_channel_patterns = [
-            r"talk\s*(with|to|ing)?\s*(rico|pet|animal|bird|parrot|cat|dog)",
-            r"(pet|animal|bird|parrot|cat|dog)\s*talk",
-            r"(funny|cute)\s*(pet|animal|bird|parrot|cat|dog)\s*video",
-            r"ai\s*(pet|animal|content|video|generated)",
+            re.compile(r"talk\s*(with|to|ing)?\s*(rico|pet|animal|bird|parrot|cat|dog)", re.IGNORECASE),
+            re.compile(r"(pet|animal|bird|parrot|cat|dog)\s*talk", re.IGNORECASE),
+            re.compile(r"(funny|cute)\s*(pet|animal|bird|parrot|cat|dog)\s*video", re.IGNORECASE),
+            re.compile(r"ai\s*(pet|animal|content|video|generated)", re.IGNORECASE),
         ]
-        
+
         # Hashtag patterns that suggest AI-generated animal content
         self._ai_hashtag_patterns = [
-            r"#talkingbird",
-            r"#talkingparrot",
-            r"#talkingcat",
-            r"#talkingdog",
-            r"#talkinganimal",
-            r"#funnybirds",
-            r"#funnypetvideos",
-            r"#parrottalking",
-            r"#birdtalking",
-            r"#cattalking",
-            r"#dogtalking",
-            r"#aianimals",
-            r"#aigenerated",
-            r"#aiart",
-            r"#aivideo",
+            re.compile(r"#talkingbird", re.IGNORECASE),
+            re.compile(r"#talkingparrot", re.IGNORECASE),
+            re.compile(r"#talkingcat", re.IGNORECASE),
+            re.compile(r"#talkingdog", re.IGNORECASE),
+            re.compile(r"#talkinganimal", re.IGNORECASE),
+            re.compile(r"#funnybirds", re.IGNORECASE),
+            re.compile(r"#funnypetvideos", re.IGNORECASE),
+            re.compile(r"#parrottalking", re.IGNORECASE),
+            re.compile(r"#birdtalking", re.IGNORECASE),
+            re.compile(r"#cattalking", re.IGNORECASE),
+            re.compile(r"#dogtalking", re.IGNORECASE),
+            re.compile(r"#aianimals", re.IGNORECASE),
+            re.compile(r"#aigenerated", re.IGNORECASE),
+            re.compile(r"#aiart", re.IGNORECASE),
+            re.compile(r"#aivideo", re.IGNORECASE),
         ]
         
         # Heuristic patterns for impossible/AI content
         # Animals that appear to talk, have conversations, or do impossible things
         self._impossible_patterns = [
             # TWO animals having a conversation (dead giveaway for AI)
-            (r"\b(two|2|both|pair)\b.{0,20}\b(parrot|bird|cat|dog|animal)s?\b.{0,30}\b(talk|convers|chat|argue|discuss|debate)", 
+            (re.compile(r"\b(two|2|both|pair)\b.{0,20}\b(parrot|bird|cat|dog|animal)s?\b.{0,30}\b(talk|convers|chat|argue|discuss|debate)", re.IGNORECASE),
              "Two animals having a conversation (AI content)"),
-            (r"\b(parrot|bird|cat|dog)s?\b.{0,20}\b(talk|convers|chat|argue)\b.{0,20}\b(each other|together|to one another)",
+            (re.compile(r"\b(parrot|bird|cat|dog)s?\b.{0,20}\b(talk|convers|chat|argue)\b.{0,20}\b(each other|together|to one another)", re.IGNORECASE),
              "Animals conversing with each other (AI content)"),
             # Parrot/bird specific conversations
-            (r"\b(parrot|parakeet|cockatoo|budgie|macaw)s?\b.{0,30}\b(conversation|talking to|chatting with|argues with|debates)",
+            (re.compile(r"\b(parrot|parakeet|cockatoo|budgie|macaw)s?\b.{0,30}\b(conversation|talking to|chatting with|argues with|debates)", re.IGNORECASE),
              "Parrots having human-like conversation (likely AI)"),
-            (r"\b(parrot|bird)s?\b.{0,15}\b(having a|in a|long|full|real|actual)\b.{0,10}\b(conversation|discussion|debate|argument)",
+            (re.compile(r"\b(parrot|bird)s?\b.{0,15}\b(having a|in a|long|full|real|actual)\b.{0,10}\b(conversation|discussion|debate|argument)", re.IGNORECASE),
              "Animals having extended conversation (AI content)"),
             # Generic talking animals - conversation keywords
-            (r"\b(parrot|bird|cat|dog|monkey|ape|gorilla|chimp|elephant|lion|tiger|bear|fox|raccoon|squirrel|rabbit|hamster|horse|cow|pig|chicken|duck|goose|owl|crow|raven|fish|shark|whale|dolphin|seal|penguin|frog|turtle|snake|lizard|gecko|iguana|crocodile|alligator)\b.{0,40}\b(talk|talking|speaks|speaking|says|said|conversation|chat|chatting|argue|arguing|debate|interview|podcast|call|phone|answer|respond|tells|told|ask|asking|wants|demanded|yells|screaming|complain|rant|confess|admit|explain|announce|declare|insist|refuse|agree|disagree)\b", 
+            (re.compile(r"\b(parrot|bird|cat|dog|monkey|ape|gorilla|chimp|elephant|lion|tiger|bear|fox|raccoon|squirrel|rabbit|hamster|horse|cow|pig|chicken|duck|goose|owl|crow|raven|fish|shark|whale|dolphin|seal|penguin|frog|turtle|snake|lizard|gecko|iguana|crocodile|alligator)\b.{0,40}\b(talk|talking|speaks|speaking|says|said|conversation|chat|chatting|argue|arguing|debate|interview|podcast|call|phone|answer|respond|tells|told|ask|asking|wants|demanded|yells|screaming|complain|rant|confess|admit|explain|announce|declare|insist|refuse|agree|disagree)\b", re.IGNORECASE),
              "Animal appearing to communicate like a human"),
-            (r"\b(talk|talking|speaks|speaking|says|said|conversation|chat|chatting|argue|arguing|debate|interview|podcast|call|phone|answer|respond|tells|told|ask|asking|wants|demanded|yells|screaming|complain|rant|confess|admit|explain|announce|declare|insist|refuse|agree|disagree)\b.{0,40}\b(parrot|bird|cat|dog|monkey|ape|gorilla|chimp|elephant|lion|tiger|bear|fox|raccoon|squirrel|rabbit|hamster|horse|cow|pig|chicken|duck|goose|owl|crow|raven|fish|shark|whale|dolphin|seal|penguin|frog|turtle|snake|lizard|gecko|iguana|crocodile|alligator)\b",
+            (re.compile(r"\b(talk|talking|speaks|speaking|says|said|conversation|chat|chatting|argue|arguing|debate|interview|podcast|call|phone|answer|respond|tells|told|ask|asking|wants|demanded|yells|screaming|complain|rant|confess|admit|explain|announce|declare|insist|refuse|agree|disagree)\b.{0,40}\b(parrot|bird|cat|dog|monkey|ape|gorilla|chimp|elephant|lion|tiger|bear|fox|raccoon|squirrel|rabbit|hamster|horse|cow|pig|chicken|duck|goose|owl|crow|raven|fish|shark|whale|dolphin|seal|penguin|frog|turtle|snake|lizard|gecko|iguana|crocodile|alligator)\b", re.IGNORECASE),
              "Animal appearing to communicate like a human"),
             # Animals wanting/demanding things (AI trope)
-            (r"\b(parrot|bird|cat|dog|monkey|gorilla|raccoon|fox|bear|elephant|lion|tiger)\b.{0,20}\b(wants|needs|demands|orders|requests|insists|refuses|complains)\b.{0,20}\b(fbi|police|911|lawyer|manager|refund|divorce|custody|money|revenge)\b",
+            (re.compile(r"\b(parrot|bird|cat|dog|monkey|gorilla|raccoon|fox|bear|elephant|lion|tiger)\b.{0,20}\b(wants|needs|demands|orders|requests|insists|refuses|complains)\b.{0,20}\b(fbi|police|911|lawyer|manager|refund|divorce|custody|money|revenge)\b", re.IGNORECASE),
              "Animal demanding human services (common AI trope)"),
             # Animals doing impossible human activities
-            (r"\b(cat|dog|bird|parrot|monkey|bear|lion|tiger|elephant|gorilla|raccoon|fox|squirrel|rabbit|fish|penguin|owl)\b.{0,30}\b(drive|driving|drove|cook|cooking|cooked|play piano|playing piano|type|typing|typed|text|texting|texted|email|emailing|read|reading|write|writing|wrote|paint|painting|painted|sing|singing|sang|dance|dancing|danced|ballet|opera|graduate|graduating|married|wedding|divorce|court|sue|lawsuit)\b",
+            (re.compile(r"\b(cat|dog|bird|parrot|monkey|bear|lion|tiger|elephant|gorilla|raccoon|fox|squirrel|rabbit|fish|penguin|owl)\b.{0,30}\b(drive|driving|drove|cook|cooking|cooked|play piano|playing piano|type|typing|typed|text|texting|texted|email|emailing|read|reading|write|writing|wrote|paint|painting|painted|sing|singing|sang|dance|dancing|danced|ballet|opera|graduate|graduating|married|wedding|divorce|court|sue|lawsuit)\b", re.IGNORECASE),
              "Animal performing impossible human activity"),
             # Animals with jobs/professions
-            (r"\b(cat|dog|bird|parrot|raccoon|monkey|bear)\b.{0,20}\b(lawyer|doctor|chef|pilot|driver|ceo|manager|employee|boss|judge|cop|officer|agent|detective)\b",
+            (re.compile(r"\b(cat|dog|bird|parrot|raccoon|monkey|bear)\b.{0,20}\b(lawyer|doctor|chef|pilot|driver|ceo|manager|employee|boss|judge|cop|officer|agent|detective)\b", re.IGNORECASE),
              "Animal with human profession (likely AI)"),
             # Impossible animal interactions
-            (r"\b(cat|dog|bird|mouse|rabbit|hamster|fish|parrot)\b.{0,30}\b(save|saves|saved|rescue|rescues|rescued|hero|call 911|calls 911|called 911|call police|calls police|ambulance|fire department)\b",
+            (re.compile(r"\b(cat|dog|bird|mouse|rabbit|hamster|fish|parrot)\b.{0,30}\b(save|saves|saved|rescue|rescues|rescued|hero|call 911|calls 911|called 911|call police|calls police|ambulance|fire department)\b", re.IGNORECASE),
              "Animal performing heroic human actions"),
             # Viral AI tropes
-            (r"\b(animal|cat|dog|bird|parrot).{0,20}(facetime|video call|zoom|teams call|skype)\b",
+            (re.compile(r"\b(animal|cat|dog|bird|parrot).{0,20}(facetime|video call|zoom|teams call|skype)\b", re.IGNORECASE),
              "Animal on video call (common AI trope)"),
-            (r"\b(cat|dog|parrot|bird).{0,20}(order|ordering|ordered|uber|doordash|pizza|food delivery|amazon|online shopping)\b",
+            (re.compile(r"\b(cat|dog|parrot|bird).{0,20}(order|ordering|ordered|uber|doordash|pizza|food delivery|amazon|online shopping)\b", re.IGNORECASE),
              "Animal ordering services (common AI trope)"),
             # Animals in legal/dramatic situations
-            (r"\b(cat|dog|parrot|bird|raccoon|monkey).{0,30}(court|trial|testif|lawyer|sue|custody|arrested|jail|prison|fbi|cia|police|detective|investigate)\b",
+            (re.compile(r"\b(cat|dog|parrot|bird|raccoon|monkey).{0,30}(court|trial|testif|lawyer|sue|custody|arrested|jail|prison|fbi|cia|police|detective|investigate)\b", re.IGNORECASE),
              "Animal in legal/dramatic situation (likely AI)"),
             # Animals with human emotions/drama
-            (r"\b(cat|dog|parrot|bird|raccoon).{0,20}(breakup|broke up|cheating|cheated|divorce|married|wedding|pregnant|baby daddy|custody battle)\b",
+            (re.compile(r"\b(cat|dog|parrot|bird|raccoon).{0,20}(breakup|broke up|cheating|cheated|divorce|married|wedding|pregnant|baby daddy|custody battle)\b", re.IGNORECASE),
              "Animal in human relationship drama (likely AI)"),
         ]
         
         # SAFETY patterns - dangerous animals near children/babies
         self._dangerous_animal_child_patterns = [
-            # Large birds with babies/children (parrots, cockatoos have powerful beaks)
-            # Pattern: bird near baby OR baby near bird (either order)
-            (r"\b(parrot|cockatoo|macaw|cockatiel|conure|african grey|amazon parrot|eclectus|bird)\b.{0,50}\b(baby|infant|newborn|toddler|child|kid|sleeping|nap|crib|bed)\b",
-             "⚠️ SAFETY: Large parrot/bird near baby/child - parrots have powerful beaks (300+ PSI) that can cause serious injury"),
-            (r"\b(baby|infant|newborn|toddler|child|kid|sleeping)\b.{0,50}\b(parrot|cockatoo|macaw|cockatiel|conure|african grey|bird)\b",
-             "⚠️ SAFETY: Baby/child near large bird - birds can bite unpredictably and cause serious injury"),
-            # Flexible pattern: any mention of baby AND parrot/cockatoo in same title
-            (r"(?=.*\b(baby|infant|newborn|toddler)\b)(?=.*\b(parrot|cockatoo|macaw|bird)\b)",
-             "⚠️ SAFETY: Video shows baby with parrot/bird - large birds have dangerous beaks and can injure infants"),
-            # Dogs with babies unsupervised
-            (r"\b(pit ?bull|rottweiler|german shepherd|doberman|husky|malamute|akita|chow|mastiff|great dane|wolf ?dog)\b.{0,50}\b(baby|infant|newborn|toddler|sleep|alone|unsupervised)\b",
-             "⚠️ SAFETY: Large/powerful dog near unsupervised baby - never leave children unattended with dogs"),
-            (r"\b(baby|infant|newborn|toddler)\b.{0,50}\b(pit ?bull|rottweiler|husky|german shepherd|dog)\b.{0,30}\b(sleep|alone|unsupervised)\b",
-             "⚠️ SAFETY: Baby sleeping near dog - dogs should never be left unsupervised with infants"),
-            # Flexible: baby AND large dog breed in same text
-            (r"(?=.*\b(baby|infant|newborn|toddler)\b)(?=.*\b(pit ?bull|rottweiler|husky|wolf|malamute)\b)",
-             "⚠️ SAFETY: Video shows baby with large/powerful dog - dogs should never be left unsupervised with infants"),
-            # Cats with babies sleeping
-            (r"\b(cat|kitten)\b.{0,40}\b(baby|infant|newborn)\b.{0,30}\b(sleep|sleeping|crib|face|breathing)\b",
-             "⚠️ SAFETY: Cat near sleeping baby - cats can accidentally suffocate infants"),
-            # Exotic/wild animals with children
-            (r"\b(snake|python|boa|constrictor|reptile|monitor lizard|alligator|crocodile|wolf|coyote|fox|raccoon|monkey|chimp|chimpanzee|primate)\b.{0,50}\b(baby|infant|toddler|child|kid|play|hug|cuddle|sleep)\b",
-             "⚠️ SAFETY: Wild/exotic animal near child - extremely dangerous, wild animals are unpredictable"),
-            (r"\b(baby|infant|toddler|child|kid)\b.{0,50}\b(snake|python|boa|monitor|alligator|crocodile|wolf|coyote|monkey|chimp|primate)\b",
-             "⚠️ SAFETY: Child near wild/exotic animal - these animals can cause severe injury or death"),
-            # General dangerous combinations
-            (r"\b(baby|infant|newborn|toddler)\b.{0,40}\b(sleep|sleeping|nap)\b.{0,40}\b(with|next to|beside|near)\b.{0,30}\b(pet|animal|dog|cat|bird|parrot)\b",
-             "⚠️ SAFETY: Baby sleeping with pet - animals should never be left unsupervised with sleeping infants"),
+            (re.compile(r"\b(parrot|cockatoo|macaw|cockatiel|conure|african grey|amazon parrot|eclectus|bird)\b.{0,50}\b(baby|infant|newborn|toddler|child|kid|sleeping|nap|crib|bed)\b", re.IGNORECASE),
+             "SAFETY: Large parrot/bird near baby/child - parrots have powerful beaks (300+ PSI) that can cause serious injury"),
+            (re.compile(r"\b(baby|infant|newborn|toddler|child|kid|sleeping)\b.{0,50}\b(parrot|cockatoo|macaw|cockatiel|conure|african grey|bird)\b", re.IGNORECASE),
+             "SAFETY: Baby/child near large bird - birds can bite unpredictably and cause serious injury"),
+            (re.compile(r"(?=.*\b(baby|infant|newborn|toddler)\b)(?=.*\b(parrot|cockatoo|macaw|bird)\b)", re.IGNORECASE),
+             "SAFETY: Video shows baby with parrot/bird - large birds have dangerous beaks and can injure infants"),
+            (re.compile(r"\b(pit ?bull|rottweiler|german shepherd|doberman|husky|malamute|akita|chow|mastiff|great dane|wolf ?dog)\b.{0,50}\b(baby|infant|newborn|toddler|sleep|alone|unsupervised)\b", re.IGNORECASE),
+             "SAFETY: Large/powerful dog near unsupervised baby - never leave children unattended with dogs"),
+            (re.compile(r"\b(baby|infant|newborn|toddler)\b.{0,50}\b(pit ?bull|rottweiler|husky|german shepherd|dog)\b.{0,30}\b(sleep|alone|unsupervised)\b", re.IGNORECASE),
+             "SAFETY: Baby sleeping near dog - dogs should never be left unsupervised with infants"),
+            (re.compile(r"(?=.*\b(baby|infant|newborn|toddler)\b)(?=.*\b(pit ?bull|rottweiler|husky|wolf|malamute)\b)", re.IGNORECASE),
+             "SAFETY: Video shows baby with large/powerful dog - dogs should never be left unsupervised with infants"),
+            (re.compile(r"\b(cat|kitten)\b.{0,40}\b(baby|infant|newborn)\b.{0,30}\b(sleep|sleeping|crib|face|breathing)\b", re.IGNORECASE),
+             "SAFETY: Cat near sleeping baby - cats can accidentally suffocate infants"),
+            (re.compile(r"\b(snake|python|boa|constrictor|reptile|monitor lizard|alligator|crocodile|wolf|coyote|fox|raccoon|monkey|chimp|chimpanzee|primate)\b.{0,50}\b(baby|infant|toddler|child|kid|play|hug|cuddle|sleep)\b", re.IGNORECASE),
+             "SAFETY: Wild/exotic animal near child - extremely dangerous, wild animals are unpredictable"),
+            (re.compile(r"\b(baby|infant|toddler|child|kid)\b.{0,50}\b(snake|python|boa|monitor|alligator|crocodile|wolf|coyote|monkey|chimp|primate)\b", re.IGNORECASE),
+             "SAFETY: Child near wild/exotic animal - these animals can cause severe injury or death"),
+            (re.compile(r"\b(baby|infant|newborn|toddler)\b.{0,40}\b(sleep|sleeping|nap)\b.{0,40}\b(with|next to|beside|near)\b.{0,30}\b(pet|animal|dog|cat|bird|parrot)\b", re.IGNORECASE),
+             "SAFETY: Baby sleeping with pet - animals should never be left unsupervised with sleeping infants"),
         ]
         
-    def _detect_impossible_content(self, title: str, description: str = "", channel: str = "", tags: list = None) -> str | None:
+    def _detect_impossible_content(self, title: str, description: str = "", channel: str = "", tags: list[str] | None = None) -> str | None:
         """
         Detect likely AI content based on impossible scenarios in video title,
         description, hashtags, channel name, and tags.
         Returns description of why it's flagged, or None if not detected.
         """
         tags = tags or []
-        
+
+        # Truncate inputs to prevent ReDoS (bound regex backtracking)
+        title = (title or "")[:MAX_TITLE_LENGTH]
+        description = (description or "")[:MAX_DESCRIPTION_LENGTH]
+        channel = (channel or "")[:MAX_CHANNEL_LENGTH]
+
         # Combine all text for analysis
         full_text = f"{title} {description}".lower()
         channel_lower = channel.lower() if channel else ""
         
         # Check title patterns
         for pattern, reason in self._impossible_patterns:
-            if re.search(pattern, full_text, re.IGNORECASE):
+            if pattern.search(full_text):
                 return reason
         
         # Check for suspicious hashtags (high confidence for AI content)
         hashtag_count = 0
         matched_hashtags = []
         for hashtag_pattern in self._ai_hashtag_patterns:
-            if re.search(hashtag_pattern, full_text, re.IGNORECASE):
+            if hashtag_pattern.search(full_text):
                 hashtag_count += 1
-                matched_hashtags.append(hashtag_pattern.replace("#", "").replace("\\", ""))
+                matched_hashtags.append(hashtag_pattern.pattern.replace("#", "").replace("\\", ""))
         
         # 2+ AI-related hashtags = very likely AI
-        if hashtag_count >= 2:
+        if hashtag_count >= AI_HASHTAG_THRESHOLD:
             return f"Multiple AI-associated hashtags detected: {', '.join(matched_hashtags[:3])}"
-        
+
         # Check channel name patterns
         for pattern in self._suspicious_channel_patterns:
-            if re.search(pattern, channel_lower, re.IGNORECASE):
+            if pattern.search(channel_lower):
                 # Channel name alone isn't enough, but combined with 1 hashtag = flag
-                if hashtag_count >= 1:
+                if hashtag_count >= AI_HASHTAG_WITH_CHANNEL:
                     return f"Suspicious channel pattern + AI hashtags (channel: {channel})"
         
         # Check tags from video metadata
@@ -202,16 +240,21 @@ class SafetyAnalyzer:
         
         return None
     
-    def _detect_dangerous_animal_child(self, title: str, description: str = "", tags: list = None) -> str | None:
+    def _detect_dangerous_animal_child(self, title: str, description: str = "", tags: list[str] | None = None) -> str | None:
         """
         Detect dangerous situations with animals and children/babies.
         Returns safety warning description or None.
         """
         tags = tags or []
-        full_text = f"{title} {description} {' '.join(tags)}".lower()
+
+        # Truncate inputs to prevent ReDoS (bound regex backtracking)
+        title = (title or "")[:MAX_TITLE_LENGTH]
+        description = (description or "")[:MAX_DESCRIPTION_LENGTH]
+
+        full_text = f"{title} {description} {' '.join(tags)}"[:MAX_FULL_TEXT_LENGTH].lower()
         
         for pattern, warning in self._dangerous_animal_child_patterns:
-            if re.search(pattern, full_text, re.IGNORECASE):
+            if pattern.search(full_text):
                 return warning
         
         return None
@@ -238,22 +281,21 @@ class SafetyAnalyzer:
         
         # Try to fetch from YouTube API (more complete data)
         try:
-            fetcher = YouTubeDataFetcher(api_key=self.youtube_api_key)
-            metadata = await fetcher.get_video_metadata(video_id)
-            if metadata:
-                channel_name = metadata.channel or channel_name
-                video_title = metadata.title or video_title
-                video_description = metadata.description or video_description
-                video_tags = metadata.tags or []
-            await fetcher.close()
+            async with YouTubeDataFetcher(api_key=self.youtube_api_key) as fetcher:
+                metadata = await fetcher.get_video_metadata(video_id)
+                if metadata:
+                    channel_name = metadata.channel or channel_name
+                    video_title = metadata.title or video_title
+                    video_description = metadata.description or video_description
+                    video_tags = metadata.tags or []
         except Exception as e:
-            print(f"Metadata fetch failed (using scraped data): {e}")
+            logger.warning(f"Metadata fetch failed (using scraped data): {e}")
         
         # Check if trusted channel
         is_trusted_channel = channel_name.lower() in self.TRUSTED_CHANNELS if channel_name else False
         
-        print(f"📺 Analyzing: '{video_title}' by '{channel_name}'")
-        print(f"   Trusted: {is_trusted_channel}, Has API key: {bool(self.youtube_api_key)}")
+        logger.info(f"📺 Analyzing: '{video_title}' by '{channel_name}'")
+        logger.info(f"   Trusted: {is_trusted_channel}, Has API key: {bool(self.youtube_api_key)}")
         
         # Step 1: Get transcript
         transcript_text, transcript_available = await self._get_transcript(video_id)
@@ -263,7 +305,7 @@ class SafetyAnalyzer:
         
         # If trusted channel, filter out AI warnings (they're likely false positives)
         if is_trusted_channel:
-            print(f"✅ Trusted channel: {channel_name} - skipping AI warnings")
+            logger.info(f"✅ Trusted channel: {channel_name} - skipping AI warnings")
             comment_analysis["warnings"] = [
                 w for w in comment_analysis.get("warnings", [])
                 if w.get("category") != "AI Content"
@@ -287,7 +329,9 @@ class SafetyAnalyzer:
                     "message": f"🤖 {heuristic_ai}",
                     "timestamp": None
                 })
-                print(f"🤖 Heuristic AI detection triggered: {heuristic_ai}")
+                # Penalize score for AI content
+                comment_analysis["warning_score"] = min(comment_analysis.get("warning_score", BASE_SCORE), AI_CONTENT_MAX_SCORE)
+                logger.info(f"🤖 Heuristic AI detection triggered: {heuristic_ai}")
         
         # Step 2.6: Detect dangerous animal + child/baby situations
         if video_title:
@@ -303,7 +347,9 @@ class SafetyAnalyzer:
                     "message": dangerous_animal_child,
                     "timestamp": None
                 })
-                print(f"⚠️ Dangerous animal/child situation detected: {dangerous_animal_child}")
+                # Penalize score for dangerous content
+                comment_analysis["warning_score"] = min(comment_analysis.get("warning_score", BASE_SCORE), DANGEROUS_ANIMAL_MAX_SCORE)
+                logger.warning(f"⚠️ Dangerous animal/child situation detected: {dangerous_animal_child}")
         
         # Step 3: Match against danger signatures (transcript + comment text)
         all_text = transcript_text
@@ -326,14 +372,14 @@ class SafetyAnalyzer:
         
         # Step 6: Calculate overall safety score (combining transcript + comments)
         transcript_score = self._calculate_safety_score(signature_matches, category_results)
-        comment_score = comment_analysis.get("warning_score", 100)
-        
-        # Weight: 60% transcript analysis, 40% community feedback
+        comment_score = comment_analysis.get("warning_score", BASE_SCORE)
+
+        # Weight: transcript analysis vs community feedback
         if transcript_available:
-            safety_score = int(transcript_score * 0.6 + comment_score * 0.4)
+            safety_score = int(transcript_score * TRANSCRIPT_WEIGHT + comment_score * COMMENT_WEIGHT)
         else:
             # If no transcript, rely more on comments
-            safety_score = int(transcript_score * 0.3 + comment_score * 0.7)
+            safety_score = int(transcript_score * NO_TRANSCRIPT_WEIGHT + comment_score * NO_TRANSCRIPT_COMMENT_WEIGHT)
         
         # Step 7: Generate summary
         summary = self._generate_summary(
@@ -360,33 +406,17 @@ class SafetyAnalyzer:
     async def _analyze_comments(self, video_id: str) -> dict:
         """Fetch and analyze YouTube comments for community warnings"""
         try:
-            fetcher = YouTubeDataFetcher(api_key=self.youtube_api_key)
-            comments = await fetcher.get_comments(video_id, max_results=100)
-            await fetcher.close()
-            
+            async with YouTubeDataFetcher(api_key=self.youtube_api_key) as fetcher:
+                comments = await fetcher.get_comments(video_id, max_results=MAX_COMMENTS_TO_FETCH)
+
             if comments:
                 return analyze_comments(comments)
             else:
                 return {"total_comments": 0, "warning_comments": 0, "warnings": [], "warning_score": 100}
         except Exception as e:
-            print(f"Comment analysis failed: {e}")
+            logger.error(f"Comment analysis failed: {e}")
             return {"total_comments": 0, "warning_comments": 0, "warnings": [], "warning_score": 100}
-        
-        # Step 5: Calculate overall safety score
-        safety_score = self._calculate_safety_score(signature_matches, category_results)
-        
-        # Step 6: Generate summary
-        summary = self._generate_summary(signature_matches, category_results, transcript_available)
-        
-        return {
-            "video_id": video_id,
-            "safety_score": safety_score,
-            "warnings": warnings,
-            "categories": category_results,
-            "summary": summary,
-            "transcript_available": transcript_available
-        }
-    
+
     async def _get_transcript(self, video_id: str) -> tuple[str, bool]:
         """Extract transcript from YouTube video"""
         try:
@@ -405,7 +435,7 @@ class SafetyAnalyzer:
             return full_text.lower(), True
             
         except Exception as e:
-            print(f"Transcript extraction failed: {e}")
+            logger.warning(f"Transcript extraction failed: {e}")
             # Return empty string but continue analysis with metadata
             return "", False
     
@@ -415,6 +445,9 @@ class SafetyAnalyzer:
         Similar to antivirus signature matching.
         """
         matches = []
+
+        # Truncate text to prevent ReDoS (bound regex backtracking)
+        text = text[:MAX_SIGNATURE_TEXT_LENGTH]
         
         for signature in self.signatures:
             # Handle new format: signature files with 'danger_signatures' array
@@ -465,7 +498,7 @@ class SafetyAnalyzer:
         
         return matches
     
-    def _analyze_categories(self, text: str, matches: list) -> dict:
+    def _analyze_categories(self, text: str, matches: list[dict]) -> dict:
         """Analyze text for each safety category"""
         categories = self.safety_db.get_categories()
         results = {}
@@ -477,12 +510,11 @@ class SafetyAnalyzer:
             # Calculate category score (100 = safe, 0 = dangerous)
             if cat_matches:
                 # More matches = lower score
-                severity_weights = {'high': 30, 'medium': 15, 'low': 5}
                 total_penalty = sum(
-                    severity_weights.get(m['signature'].get('severity', 'low'), 5)
+                    CATEGORY_SEVERITY_WEIGHTS.get(m['signature'].get('severity', 'low'), 5)
                     for m in cat_matches
                 )
-                score = max(0, 100 - total_penalty)
+                score = max(0, BASE_SCORE - total_penalty)
             else:
                 score = 100
             
@@ -494,7 +526,7 @@ class SafetyAnalyzer:
         
         return results
     
-    def _generate_warnings(self, matches: list) -> list[dict]:
+    def _generate_warnings(self, matches: list[dict]) -> list[dict]:
         """Convert signature matches to user-friendly warnings"""
         warnings = []
         
@@ -517,7 +549,7 @@ class SafetyAnalyzer:
         
         return warnings
     
-    def _calculate_safety_score(self, matches: list, categories: dict) -> int:
+    def _calculate_safety_score(self, matches: list[dict], categories: dict) -> int:
         """
         Calculate overall safety score (0-100).
         
@@ -526,28 +558,26 @@ class SafetyAnalyzer:
         - Category scores
         """
         if not matches:
-            return 95  # High score if no issues found
-        
+            return DEFAULT_SAFE_SCORE
+
         # Base score
-        base_score = 100
-        
+        base_score = BASE_SCORE
+
         # Penalty for each match based on severity
-        severity_penalties = {'high': 25, 'medium': 12, 'low': 5}
-        
         for match in matches:
             severity = match['signature'].get('severity', 'low')
-            base_score -= severity_penalties.get(severity, 5)
-        
+            base_score -= OVERALL_SEVERITY_PENALTIES.get(severity, 5)
+
         # Average with category scores
         if categories:
             category_avg = sum(c['score'] for c in categories.values()) / len(categories)
-            final_score = (base_score * 0.6) + (category_avg * 0.4)
+            final_score = (base_score * BASE_SCORE_WEIGHT) + (category_avg * CATEGORY_SCORE_WEIGHT)
         else:
             final_score = base_score
-        
-        return max(0, min(100, int(final_score)))
+
+        return max(0, min(BASE_SCORE, int(final_score)))
     
-    def _generate_summary(self, matches: list, categories: dict, has_transcript: bool, comment_analysis: dict = None) -> str:
+    def _generate_summary(self, matches: list[dict], categories: dict, has_transcript: bool, comment_analysis: dict | None = None) -> str:
         """Generate a human-readable summary of the analysis"""
         
         parts = []
@@ -612,6 +642,7 @@ class AIAnalyzer:
     """
     
     def __init__(self, api_key: str, provider: str = 'openai'):
+        """Initialize with LLM API key and provider name."""
         self.api_key = api_key
         self.provider = provider
         

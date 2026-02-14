@@ -9,11 +9,7 @@
   ],
   "host_permissions": [
     "https://www.youtube.com/*",
-    "https://youtube.com/*",
-    "http://localhost:8000/*",
-    "https://localhost:8000/*",
-    "http://127.0.0.1:8000/*",
-    "https://127.0.0.1:8000/*"
+    "https://youtube.com/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
@@ -29,7 +25,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.youtube.com/watch*", 
+        "https://www.youtube.com/watch*",
         "https://youtube.com/watch*",
         "https://www.youtube.com/shorts/*",
         "https://youtube.com/shorts/*"

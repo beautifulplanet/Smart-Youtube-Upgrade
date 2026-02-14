@@ -33,3 +33,18 @@ htmlcov/
 # Secrets (never commit API keys)
 secrets.json
 credentials.json
+
+# Personal reference (NEVER push)
+CHEAT_SHEET_DO_NOT_PUSH.md
+
+# Claude temp files
+tmpclaude-*
+
+# Test output artifacts
+test_output*.txt
+
+# Debug scripts
+debug_*.py
+
+# Workspace files
+*.code-workspace

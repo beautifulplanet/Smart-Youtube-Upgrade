@@ -12,223 +12,49 @@ https://developers.google.com/youtube
 import os
 import re
 import httpx
-from typing import Optional
+import json
+from pathlib import Path
+from typing import Optional, Any
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SafeAlternativesFinder:
     """Finds safe alternative videos for dangerous/AI content"""
     
     def __init__(self, api_key: Optional[str] = None):
+        """Initialize with optional YouTube API key and load config files."""
         self.api_key = api_key or os.environ.get("YOUTUBE_API_KEY")
         self.enabled = bool(self.api_key)
+        self.data_path = Path(__file__).parent / "safety-db" / "alternatives"
         
-        # Animal keywords for detection
-        self.animal_keywords = {
-            "dog": ["dog", "puppy", "canine", "golden retriever", "labrador", "german shepherd", "husky", "poodle", "bulldog", "beagle"],
-            "cat": ["cat", "kitten", "feline", "tabby", "siamese", "persian", "maine coon"],
-            "raccoon": ["raccoon", "racoon", "trash panda"],
-            "fox": ["fox", "foxes", "red fox", "arctic fox", "fennec"],
-            "bear": ["bear", "grizzly", "polar bear", "brown bear", "black bear", "panda"],
-            "lion": ["lion", "lioness", "pride", "simba"],
-            "tiger": ["tiger", "tigers", "bengal tiger", "siberian tiger"],
-            "elephant": ["elephant", "elephants", "tusker", "jumbo"],
-            "wolf": ["wolf", "wolves", "wolfpack", "gray wolf"],
-            "deer": ["deer", "buck", "doe", "fawn", "stag", "elk", "moose"],
-            "bird": ["bird", "eagle", "hawk", "owl", "parrot", "penguin", "flamingo", "hummingbird"],
-            "snake": ["snake", "python", "cobra", "viper", "anaconda", "boa"],
-            "monkey": ["monkey", "chimp", "chimpanzee", "gorilla", "orangutan", "ape", "primate"],
-            "horse": ["horse", "pony", "stallion", "mare", "foal", "mustang"],
-            "rabbit": ["rabbit", "bunny", "hare"],
-            "squirrel": ["squirrel", "chipmunk"],
-            "shark": ["shark", "great white", "hammerhead", "whale shark"],
-            "whale": ["whale", "orca", "humpback", "blue whale", "dolphin"],
-            "crocodile": ["crocodile", "alligator", "croc", "gator"],
-            "turtle": ["turtle", "tortoise", "sea turtle"],
-            "frog": ["frog", "toad", "amphibian"],
-            "spider": ["spider", "tarantula", "arachnid"],
-            "insect": ["insect", "butterfly", "bee", "ant", "beetle"],
-            "fish": ["fish", "goldfish", "koi", "tropical fish", "aquarium"],
-            "cow": ["cow", "cattle", "bull", "calf"],
-            "pig": ["pig", "piglet", "hog", "boar"],
-            "chicken": ["chicken", "rooster", "hen", "chick"],
-            "duck": ["duck", "duckling", "goose", "swan"],
-            "leopard": ["leopard", "cheetah", "jaguar", "panther"],
-            "hippo": ["hippo", "hippopotamus"],
-            "rhino": ["rhino", "rhinoceros"],
-            "giraffe": ["giraffe"],
-            "zebra": ["zebra"],
-            "kangaroo": ["kangaroo", "wallaby", "koala"],
-            "otter": ["otter", "sea otter"],
-            "beaver": ["beaver"],
-            "hedgehog": ["hedgehog"],
-            "hamster": ["hamster", "gerbil", "guinea pig"],
-        }
+        # Load configuration from JSON files
+        self.animal_keywords = self._load_json("animal_keywords.json", {})
+        self.animal_channels = self._load_json("animal_channels.json", {})
+        self.safe_search_mappings = self._load_json("safe_search_mappings.json", {})
+        self.real_animal_searches = self._load_json("real_animal_searches.json", [])
+        self.trusted_channels = self._load_json("trusted_channels.json", [])
         
-        # Trusted animal/wildlife channels - Mix of big names and verified smaller creators
-        self.animal_channels = {
-            # Major networks
-            "big": [
-                "BBC Earth",
-                "National Geographic",
-                "Nat Geo WILD", 
-                "Discovery",
-                "Animal Planet",
-                "Smithsonian Channel",
-                "PBS Nature",
-            ],
-            # Popular wildlife YouTubers (verified, real footage)
-            "medium": [
-                "The Dodo",
-                "Brave Wilderness",
-                "AntsCanada",
-                "Casual Geographic",
-                "Daily Dose Of Internet",
-                "ViralHog",
-                "Kritter Klub",
-                "Wildlife Aid",
-                "The Pet Collective",
-                "Dodo Kids",
-            ],
-            # Specialized/Educational
-            "educational": [
-                "Clint's Reptiles",
-                "Snake Discovery",
-                "Emzotic",
-                "Taylor Nicole Dean",
-                "Wickens Wicked Reptiles",
-                "JoCat",
-                "TierZoo",
-                "Ze Frank",
-            ],
-            # Zoo & Sanctuary channels
-            "zoo": [
-                "San Diego Zoo",
-                "Smithsonian's National Zoo",
-                "Cincinnati Zoo",
-                "Australia Zoo",
-                "Big Cat Rescue",
-                "The Elephant Sanctuary",
-            ],
-            # Nature photographers/filmmakers
-            "filmmaker": [
-                "Bertie Gregory",
-                "Patrick Dykstra",
-                "Wildlife Photographer",
-            ]
-        }
+        # Load fallback data
+        self.fallback_tutorials = self._load_json("fallback_tutorials.json", [])
+        self.fallback_entertainment = self._load_json("fallback_entertainment.json", [])
+        self.fallback_real_animals = self._load_json("fallback_real_animals.json", {})
         
-        # Mapping of danger categories to safe search terms
-        # Note: Keys must match category IDs from categories.json (lowercase)
-        self.safe_search_mappings = {
-            "electrical": [
-                "electrical safety tutorial professional",
-                "licensed electrician how to",
-                "electrical work safety gear OSHA"
-            ],
-            "diy": [
-                "professional DIY safety tutorial",
-                "woodworking safety equipment",
-                "home improvement licensed contractor"
-            ],
-            "cooking": [
-                "professional chef cooking technique",
-                "food safety cooking temperature",
-                "culinary school proper technique",
-                "safe BBQ grilling techniques professional",
-                "smoker safety food safe materials",
-                "proper smoking meat professional chef"
-            ],
-            "bbq": [
-                "safe BBQ smoker build professional",
-                "proper smoking meat techniques chef",
-                "food safe smoker materials guide",
-                "BBQ pitmaster professional tips",
-                "grilling safety tips certified",
-                "how to build smoker food safe"
-            ],
-            "grilling": [
-                "safe grilling techniques professional",
-                "BBQ safety tips expert",
-                "food safe smoker setup guide",
-                "proper smoker materials food grade",
-                "pitmaster BBQ tutorial safe"
-            ],
-            "medical": [
-                "doctor explains medical procedure",
-                "licensed physical therapist tutorial",
-                "medical professional health advice"
-            ],
-            "chemical": [
-                "chemistry safety lab tutorial",
-                "chemical safety professional",
-                "hazmat safety handling chemicals"
-            ],
-            "fitness": [
-                "certified personal trainer workout",
-                "physical therapist approved exercises",
-                "proper form fitness tutorial"
-            ],
-            "automotive": [
-                "ASE certified mechanic tutorial",
-                "professional auto repair safety",
-                "car maintenance proper technique"
-            ],
-            "childcare": [
-                "pediatrician child safety tips",
-                "certified childcare professional",
-                "child safety expert advice"
-            ],
-            "outdoor": [
-                "wilderness survival expert certified",
-                "outdoor safety professional guide",
-                "camping safety ranger tips"
-            ],
-            "osha_workplace": [
-                "OSHA safety training official",
-                "workplace safety professional",
-                "industrial safety certified"
-            ],
-            "driving_dmv": [
-                "driving instructor professional tips",
-                "DMV approved driving tutorial",
-                "defensive driving certified course"
-            ],
-            "physical_therapy": [
-                "licensed physical therapist exercises",
-                "DPT approved rehabilitation",
-                "orthopedic specialist stretches"
-            ]
-        }
-        
-        # AI animal content -> Real animal alternatives
-        self.real_animal_searches = [
-            "BBC Earth animals documentary",
-            "National Geographic wildlife real footage",
-            "nature documentary animals 4K",
-            "zoo animals real footage educational",
-            "wildlife photographer real animals",
-            "Planet Earth animals documentary",
-            "animal behavior scientist explains",
-            "veterinarian animal facts",
-            "wildlife rescue real footage",
-            "funny real animals compilation verified"
-        ]
-        
-        # Trusted educational channels (prioritize these)
-        self.trusted_channels = [
-            "BBC Earth",
-            "National Geographic",
-            "Discovery",
-            "Smithsonian Channel",
-            "This Old House",
-            "Bob Vila",
-            "Doctor Mike",
-            "SciShow",
-            "Veritasium",
-            "Mark Rober",
-            "Adam Savage's Tested",
-            "The Dodo",  # Real animal content
-            "Brave Wilderness"
-        ]
+        # Flatten fallback videos for backwards compatibility if needed
+        self.fallback_real_videos = self.fallback_real_animals.get("default", [])
+
+    def _load_json(self, filename: str, default: Any) -> Any:
+        """Load a JSON config file from the alternatives data directory."""
+        try:
+            file_path = self.data_path / filename
+            if file_path.exists():
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            logger.warning(f"Config file not found: {filename}")
+            return default
+        except Exception as e:
+            logger.error(f"Error loading {filename}: {e}")
+            return default
     
     async def find_safe_alternatives(
         self, 
@@ -271,15 +97,11 @@ class SafeAlternativesFinder:
                 category_type = "real_animals"
             elif self._is_animal_related(original_title):
                 # Generic animal content
-                search_queries = self._build_generic_animal_searches()
+                search_queries = self.real_animal_searches[:4]
                 category_type = "real_animals"
             else:
                 # Generic real content searches
-                search_queries = [
-                    "BBC Earth documentary real footage",
-                    "National Geographic real video",
-                    "educational documentary verified"
-                ]
+                search_queries = self.real_animal_searches[:3]
                 category_type = "real_content"
         elif danger_categories:
             # Build search queries from danger categories
@@ -333,7 +155,7 @@ class SafeAlternativesFinder:
                             break
                             
             except Exception as e:
-                print(f"Search error for '{query}': {e}")
+                logger.error(f"Search error for '{query}': {e}")
                 continue
             
             if len(alternatives) >= max_results:
@@ -371,7 +193,7 @@ class SafeAlternativesFinder:
                         if len(alternatives) >= max_results:
                             break
             except Exception as e:
-                print(f"Animal search error: {e}")
+                logger.error(f"Animal search error: {e}")
                 continue
             
             if len(alternatives) >= max_results:
@@ -384,74 +206,6 @@ class SafeAlternativesFinder:
             "message": "🦁 Watch REAL animal videos instead!"
         }
     
-    # Fallback curated videos - using YouTube search links for reliability
-    FALLBACK_TUTORIALS = [
-        {"id": "sora-tutorial", "title": "How To Use OpenAI Sora - Tutorials", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/HBxn56l9WcU/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=how+to+use+openai+sora+tutorial+2024", "badge": "🎓 Sora"},
-        {"id": "runway-tutorial", "title": "Runway Gen-3 Tutorial - AI Video", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/NXpdyAWLDas/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=runway+gen+3+alpha+tutorial", "badge": "🎓 Runway"},
-        {"id": "pika-tutorial", "title": "Pika Labs AI Video Tutorial", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/hHvSNtYaYlY/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=pika+labs+ai+video+tutorial", "badge": "🎓 Pika"},
-        {"id": "kling-tutorial", "title": "Kling AI Tutorial - Create Videos", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/HK6y8DAPN_0/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=kling+ai+video+tutorial", "badge": "🎓 Kling"},
-        {"id": "luma-tutorial", "title": "Luma Dream Machine Tutorial", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/6bk2E-XCLSY/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=luma+dream+machine+ai+tutorial", "badge": "🎓 Luma"},
-        {"id": "sd-video", "title": "Stable Diffusion Video - Full Guide", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/jDi2DLqkocU/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=stable+diffusion+video+animation+tutorial", "badge": "🎓 Tutorial"},
-        {"id": "ai-tools", "title": "Best AI Video Tools 2024", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/xqxB4VPoyK0/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=best+ai+video+generator+tools+2024", "badge": "🎓 Tools"},
-        {"id": "ai-basics", "title": "How AI Video Generation Works", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/aircAruvnKk/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=how+ai+video+generation+works+explained", "badge": "🎓 Learn"},
-    ]
-    
-    FALLBACK_ENTERTAINMENT = [
-        {"id": "sora-showcase", "title": "OpenAI Sora - Best Examples", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/HBxn56l9WcU/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=openai+sora+best+examples+showcase", "badge": "🤖 Sora"},
-        {"id": "ai-videos-2024", "title": "Best AI Generated Videos 2024", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/4wtk26eFCJM/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=best+ai+generated+videos+2024", "badge": "🤖 AI"},
-        {"id": "runway-showcase", "title": "Runway AI - Amazing Creations", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/IRDgJ0yRbeY/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=runway+ai+video+showcase+amazing", "badge": "🤖 Runway"},
-        {"id": "ai-art-video", "title": "AI Art to Video - Incredible Results", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/3CRkNJ2Jk2Q/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=ai+art+to+video+midjourney+animation", "badge": "🎨 Art"},
-        {"id": "ai-short-films", "title": "AI Generated Short Films", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/qArnCdUGkOE/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=ai+generated+short+film+2024", "badge": "🎬 Films"},
-        {"id": "ai-music-video", "title": "AI Music Videos - Creative", "channel": "YouTube Search", "thumbnail": "https://i.ytimg.com/vi/aircAruvnKk/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=ai+generated+music+video+2024", "badge": "🎵 Music"},
-    ]
-    
-    # Real animal videos by animal type - YouTube search links for reliability
-    FALLBACK_REAL_ANIMALS = {
-        "dog": [
-            {"id": "dog-bbc", "title": "Dogs - BBC Earth Documentary", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/3GRSbr0EYYU/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=dogs+bbc+earth+documentary", "badge": "✓ BBC", "is_trusted": True},
-            {"id": "dog-dodo", "title": "Amazing Dog Rescues - The Dodo", "channel": "The Dodo", "thumbnail": "https://i.ytimg.com/vi/bxHFBnfudUo/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=the+dodo+dog+rescue+stories", "badge": "✓ Dodo", "is_trusted": True},
-            {"id": "dog-natgeo", "title": "Dogs - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/3uKwQDLgjQ0/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=national+geographic+dogs+documentary", "badge": "✓ NatGeo", "is_trusted": True},
-            {"id": "dog-planet", "title": "Dogs 101 - Animal Planet", "channel": "Animal Planet", "thumbnail": "https://i.ytimg.com/vi/qiJaeQ8r5IY/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=dogs+101+animal+planet", "badge": "✓ Real", "is_trusted": True},
-        ],
-        "cat": [
-            {"id": "cat-bbc", "title": "Cats - BBC Documentary", "channel": "BBC", "thumbnail": "https://i.ytimg.com/vi/sI8NsYIyQ2A/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=cats+bbc+documentary", "badge": "✓ BBC", "is_trusted": True},
-            {"id": "cat-natgeo", "title": "Big Cats - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/cbP2N1BQdYc/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=big+cats+national+geographic", "badge": "✓ NatGeo", "is_trusted": True},
-            {"id": "cat-dodo", "title": "Cat Rescues - The Dodo", "channel": "The Dodo", "thumbnail": "https://i.ytimg.com/vi/Ox7HW8dG1_M/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=the+dodo+cat+rescue", "badge": "✓ Dodo", "is_trusted": True},
-            {"id": "cat-planet", "title": "Cats 101 - Animal Planet", "channel": "Animal Planet", "thumbnail": "https://i.ytimg.com/vi/hY7m5jjJ9mM/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=cats+101+animal+planet", "badge": "✓ Real", "is_trusted": True},
-        ],
-        "lion": [
-            {"id": "lion-natgeo", "title": "Lions - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/aPLXWiwMo6Y/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=lions+national+geographic+documentary", "badge": "✓ NatGeo", "is_trusted": True},
-            {"id": "lion-bbc", "title": "Lions - BBC Earth", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/TBAj8fgHxHE/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=lions+bbc+earth+documentary", "badge": "✓ BBC", "is_trusted": True},
-            {"id": "lion-discovery", "title": "Lion Pride - Discovery", "channel": "Discovery", "thumbnail": "https://i.ytimg.com/vi/rv8kOzRZK8g/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=lion+pride+discovery+channel", "badge": "✓ Discovery", "is_trusted": True},
-            {"id": "lion-smithsonian", "title": "African Lions - Smithsonian", "channel": "Smithsonian", "thumbnail": "https://i.ytimg.com/vi/MsJamQDzL2s/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=african+lions+smithsonian+channel", "badge": "✓ Verified", "is_trusted": True},
-        ],
-        "elephant": [
-            {"id": "elephant-natgeo", "title": "Elephants - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/aMJToCAqCvk/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=elephants+national+geographic+documentary", "badge": "✓ NatGeo", "is_trusted": True},
-            {"id": "elephant-bbc", "title": "Baby Elephants - BBC Earth", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/h0gHpFd4rvo/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=baby+elephants+bbc+earth", "badge": "✓ BBC", "is_trusted": True},
-            {"id": "elephant-discovery", "title": "Elephant Intelligence - Discovery", "channel": "Discovery", "thumbnail": "https://i.ytimg.com/vi/cPZv5CwXdGM/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=elephant+intelligence+discovery+documentary", "badge": "✓ Discovery", "is_trusted": True},
-        ],
-        "bird": [
-            {"id": "bird-bbc", "title": "Birds of Paradise - BBC Earth", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/9RArGl2vkGI/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=birds+of+paradise+bbc+earth", "badge": "✓ BBC", "is_trusted": True},
-            {"id": "bird-natgeo", "title": "Eagles - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/W7QZnwKqopo/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=eagles+national+geographic+documentary", "badge": "✓ NatGeo", "is_trusted": True},
-            {"id": "bird-smithsonian", "title": "Hummingbirds - Smithsonian", "channel": "Smithsonian", "thumbnail": "https://i.ytimg.com/vi/SvjSP2xYZm8/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=hummingbirds+smithsonian+channel", "badge": "✓ Verified", "is_trusted": True},
-        ],
-        "fish": [
-            {"id": "fish-bbc", "title": "Ocean Life - BBC Blue Planet", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/r7NMnAuqHtA/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=blue+planet+bbc+documentary", "badge": "✓ BBC", "is_trusted": True},
-            {"id": "fish-natgeo", "title": "Sharks - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/lKQiVHaFvvs/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=sharks+national+geographic+documentary", "badge": "✓ NatGeo", "is_trusted": True},
-            {"id": "fish-ocean", "title": "Deep Ocean Documentary", "channel": "Documentary", "thumbnail": "https://i.ytimg.com/vi/AELk7a9lLqw/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=deep+ocean+documentary+full", "badge": "✓ Real", "is_trusted": True},
-        ],
-        "default": [
-            {"id": "wildlife-bbc", "title": "Planet Earth II - BBC", "channel": "BBC Earth", "thumbnail": "https://i.ytimg.com/vi/nlYlNF30bVg/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=planet+earth+2+bbc+clips", "badge": "✓ BBC", "is_trusted": True},
-            {"id": "wildlife-netflix", "title": "Our Planet - Netflix", "channel": "Netflix", "thumbnail": "https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=our+planet+netflix+full+episode", "badge": "✓ Netflix", "is_trusted": True},
-            {"id": "wildlife-dodo", "title": "Animal Rescues - The Dodo", "channel": "The Dodo", "thumbnail": "https://i.ytimg.com/vi/darSMsJ_8Mc/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=the+dodo+animal+rescue+compilation", "badge": "✓ Dodo", "is_trusted": True},
-            {"id": "wildlife-natgeo", "title": "Wildlife - National Geographic", "channel": "National Geographic", "thumbnail": "https://i.ytimg.com/vi/7Kf7ItfKAD0/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=national+geographic+wildlife+documentary", "badge": "✓ NatGeo", "is_trusted": True},
-            {"id": "wildlife-nature", "title": "Nature Documentary - PBS", "channel": "PBS Nature", "thumbnail": "https://i.ytimg.com/vi/WmVLcj-XKnM/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=pbs+nature+documentary+full", "badge": "✓ PBS", "is_trusted": True},
-            {"id": "wildlife-smithsonian", "title": "Amazing Animals - Smithsonian", "channel": "Smithsonian", "thumbnail": "https://i.ytimg.com/vi/CbzV6i4JazU/hqdefault.jpg", "url": "https://www.youtube.com/results?search_query=smithsonian+channel+animals+documentary", "badge": "✓ Verified", "is_trusted": True},
-        ]
-    }
-    
-    # Keep old fallback for backwards compatibility
-    FALLBACK_REAL_VIDEOS = FALLBACK_REAL_ANIMALS["default"]
     
     async def find_ai_tutorials(self, detected_subject: str = None, prefer_shorts: bool = False, max_results: int = 8) -> dict:
         """
@@ -462,7 +216,7 @@ class SafeAlternativesFinder:
         if not self.enabled:
             return {
                 "enabled": True,
-                "alternatives": self.FALLBACK_TUTORIALS[:max_results],
+                "alternatives": self.fallback_tutorials[:max_results],
                 "category_type": "ai_tutorials", 
                 "message": "🎓 Learn to create AI videos! (curated picks)",
                 "detected_subject": detected_subject,
@@ -523,7 +277,7 @@ class SafeAlternativesFinder:
                         if len(alternatives) >= max_results:
                             break
             except Exception as e:
-                print(f"AI tutorial search error: {e}")
+                logger.error(f"AI tutorial search error: {e}")
                 continue
             
             if len(alternatives) >= max_results:
@@ -531,7 +285,7 @@ class SafeAlternativesFinder:
         
         # Fall back to curated list if search returns nothing
         if not alternatives:
-            alternatives = self.FALLBACK_TUTORIALS[:max_results]
+            alternatives = self.fallback_tutorials[:max_results]
         
         subject_text = f" {detected_subject}" if detected_subject else ""
         format_text = "Shorts" if prefer_shorts else "tutorials"
@@ -554,7 +308,7 @@ class SafeAlternativesFinder:
         if not self.enabled:
             return {
                 "enabled": True,
-                "alternatives": self.FALLBACK_ENTERTAINMENT[:max_results],
+                "alternatives": self.fallback_entertainment[:max_results],
                 "category_type": "ai_entertainment",
                 "message": "🎨 Quality AI content (curated picks)",
                 "detected_subject": detected_subject,
@@ -613,7 +367,7 @@ class SafeAlternativesFinder:
                         if len(alternatives) >= max_results:
                             break
             except Exception as e:
-                print(f"AI entertainment search error: {e}")
+                logger.error(f"AI entertainment search error: {e}")
                 continue
             
             if len(alternatives) >= max_results:
@@ -621,7 +375,7 @@ class SafeAlternativesFinder:
         
         # Fall back to curated list if search returns nothing
         if not alternatives:
-            alternatives = self.FALLBACK_ENTERTAINMENT[:max_results]
+            alternatives = self.fallback_entertainment[:max_results]
         
         subject_text = f" {detected_subject}" if detected_subject else ""
         format_text = "Shorts" if prefer_shorts else "videos"
@@ -709,7 +463,7 @@ class SafeAlternativesFinder:
             response = await client.get(url, params=params)
             
             if response.status_code != 200:
-                print(f"YouTube search error: {response.status_code}")
+                logger.error(f"YouTube search error: {response.status_code}")
                 return []
             
             data = response.json()
@@ -774,6 +528,7 @@ class SafeAlternativesFinder:
 _finder = None
 
 def get_alternatives_finder() -> SafeAlternativesFinder:
+    """Return the singleton SafeAlternativesFinder instance."""
     global _finder
     if _finder is None:
         _finder = SafeAlternativesFinder()

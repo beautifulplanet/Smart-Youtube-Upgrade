@@ -1,4 +1,4 @@
-# YouTube Safety Inspector v2.0.2 🛡️
+# YouTube Safety Inspector v2.1.0
 
 YouTube-native safety assistant that flags risky or AI-generated content, and helps users pivot to safer, high‑quality alternatives — without breaking the watching flow.
 

@@ -9,15 +9,15 @@
 <body>
   <div class="container">
     <header>
-      <div class="logo">🛡️</div>
+      <div class="logo" aria-hidden="true">🛡️</div>
       <h1>Safety Inspector</h1>
-      <button id="settings-toggle" class="settings-btn" title="Settings">⚙️</button>
+      <button id="settings-toggle" class="settings-btn" title="Settings" aria-label="Open settings">⚙️</button>
     </header>
 
     <!-- Main View -->
     <div id="main-view">
-      <div id="loading" class="loading hidden">
-        <div class="spinner"></div>
+      <div id="loading" class="loading hidden" role="status" aria-label="Analyzing video">
+        <div class="spinner" aria-hidden="true"></div>
         <p>Analyzing video...</p>
       </div>
 
@@ -28,7 +28,7 @@
 
       <div id="results" class="results hidden">
         <div class="score-section">
-          <div class="score-circle" id="score-circle">
+          <div class="score-circle" id="score-circle" role="meter" aria-label="Safety score" aria-valuemin="0" aria-valuemax="100">
             <span id="score-value">--</span>
           </div>
           <div class="score-label" id="score-label">Safety Score</div>
@@ -45,12 +45,12 @@
         </div>
 
         <div class="details-section">
-          <button id="view-details" class="btn-secondary">View Full Report</button>
+          <button id="view-details" class="btn-secondary" aria-label="View full safety report">View Full Report</button>
         </div>
       </div>
 
-      <div id="error" class="error hidden">
-        <div class="icon">❌</div>
+      <div id="error" class="error hidden" role="alert">
+        <div class="icon" aria-hidden="true">❌</div>
         <p id="error-message">An error occurred</p>
         <button id="retry-btn" class="btn-primary">Retry</button>
       </div>
@@ -59,7 +59,7 @@
     <!-- Settings View -->
     <div id="settings-view" class="hidden">
       <div class="settings-header">
-        <button id="settings-back" class="back-btn">← Back</button>
+        <button id="settings-back" class="back-btn" aria-label="Back to main view">← Back</button>
         <h2>Settings</h2>
       </div>
       
@@ -72,7 +72,7 @@
             <span class="toggle-desc">Detect dangerous DIY, medical, cooking content</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-safety" checked>
+            <input type="checkbox" id="enable-safety" checked aria-label="Safety Warnings">
             <span class="slider"></span>
           </label>
         </div>
@@ -82,7 +82,7 @@
             <span class="toggle-desc">Flag AI-generated or fake videos</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-ai-detection" checked>
+            <input type="checkbox" id="enable-ai-detection" checked aria-label="AI Content Detection">
             <span class="slider"></span>
           </label>
         </div>
@@ -92,7 +92,7 @@
             <span class="toggle-desc">Automatically check videos when page loads</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="auto-analyze" checked>
+            <input type="checkbox" id="auto-analyze" checked aria-label="Auto-Analyze">
             <span class="slider"></span>
           </label>
         </div>
@@ -107,7 +107,7 @@
             <span class="toggle-desc">Analyze standard YouTube videos</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-regular-videos" checked>
+            <input type="checkbox" id="enable-regular-videos" checked aria-label="Regular Videos">
             <span class="slider"></span>
           </label>
         </div>
@@ -117,7 +117,7 @@
             <span class="toggle-desc">Analyze Shorts videos</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-shorts" checked>
+            <input type="checkbox" id="enable-shorts" checked aria-label="YouTube Shorts">
             <span class="slider"></span>
           </label>
         </div>
@@ -132,7 +132,7 @@
             <span class="toggle-desc">Suggest real videos from trusted channels</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-alternatives" checked>
+            <input type="checkbox" id="enable-alternatives" checked aria-label="Real Video Alternatives">
             <span class="slider"></span>
           </label>
         </div>
@@ -142,7 +142,7 @@
             <span class="toggle-desc">Show "Learn to make AI videos" section</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-ai-tutorials" checked>
+            <input type="checkbox" id="enable-ai-tutorials" checked aria-label="AI Tutorials">
             <span class="slider"></span>
           </label>
         </div>
@@ -152,7 +152,7 @@
             <span class="toggle-desc">Show quality AI content suggestions</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-ai-entertainment" checked>
+            <input type="checkbox" id="enable-ai-entertainment" checked aria-label="AI Entertainment">
             <span class="slider"></span>
           </label>
         </div>
@@ -166,7 +166,7 @@
             <span class="select-label">Banner Style</span>
             <span class="select-desc">How alerts appear on screen</span>
           </div>
-          <select id="banner-style" class="setting-select">
+          <select id="banner-style" class="setting-select" aria-label="Banner Style">
             <option value="modal">Modal (Center)</option>
             <option value="corner">Corner Badge</option>
             <option value="bar">Top Bar</option>
@@ -177,7 +177,7 @@
             <span class="select-label">Auto-Dismiss</span>
             <span class="select-desc">Automatically hide banner after</span>
           </div>
-          <select id="auto-dismiss" class="setting-select">
+          <select id="auto-dismiss" class="setting-select" aria-label="Auto-Dismiss">
             <option value="0">Never (Manual)</option>
             <option value="10">10 seconds</option>
             <option value="30">30 seconds</option>
@@ -190,7 +190,7 @@
             <span class="toggle-desc">Flash AI indicator every 60s during playback</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-reminders" checked>
+            <input type="checkbox" id="enable-reminders" checked aria-label="Periodic Reminders">
             <span class="slider"></span>
           </label>
         </div>
@@ -200,7 +200,7 @@
             <span class="toggle-desc">Show reminder when video ends</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-end-alert" checked>
+            <input type="checkbox" id="enable-end-alert" checked aria-label="End-of-Video Alert">
             <span class="slider"></span>
           </label>
         </div>
@@ -215,7 +215,7 @@
             <span class="toggle-desc">Play sound when AI/danger detected</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-sound">
+            <input type="checkbox" id="enable-sound" aria-label="Sound Alerts">
             <span class="slider"></span>
           </label>
         </div>
@@ -225,7 +225,7 @@
             <span class="toggle-desc">Animated borders and highlights</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-visual-effects" checked>
+            <input type="checkbox" id="enable-visual-effects" checked aria-label="Visual Effects">
             <span class="slider"></span>
           </label>
         </div>
@@ -239,7 +239,7 @@
             <span class="select-label">AI Detection Level</span>
             <span class="select-desc">How strict AI detection should be</span>
           </div>
-          <select id="ai-sensitivity" class="setting-select">
+          <select id="ai-sensitivity" class="setting-select" aria-label="AI Detection Level">
             <option value="low">Low (Obvious AI only)</option>
             <option value="medium" selected>Medium (Balanced)</option>
             <option value="high">High (Sensitive)</option>
@@ -250,7 +250,7 @@
             <span class="select-label">Safety Warning Level</span>
             <span class="select-desc">Minimum severity to show warnings</span>
           </div>
-          <select id="safety-sensitivity" class="setting-select">
+          <select id="safety-sensitivity" class="setting-select" aria-label="Safety Warning Level">
             <option value="all">All Warnings</option>
             <option value="medium" selected>Medium & High</option>
             <option value="high">High Only</option>
@@ -266,8 +266,8 @@
           <!-- Dynamically populated by JavaScript -->
         </div>
         <div class="add-trusted">
-          <input type="text" id="new-trusted-channel" placeholder="Add channel name...">
-          <button id="add-trusted-btn" class="btn-small">+ Add</button>
+          <input type="text" id="new-trusted-channel" placeholder="Add channel name..." aria-label="Add trusted channel">
+          <button id="add-trusted-btn" class="btn-small" aria-label="Add channel">+ Add</button>
         </div>
       </div>
 
@@ -297,7 +297,7 @@
             <span class="toggle-desc">Help improve detection (anonymous)</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-analytics">
+            <input type="checkbox" id="enable-analytics" aria-label="Analytics">
             <span class="slider"></span>
           </label>
         </div>
@@ -307,7 +307,7 @@
             <span class="toggle-desc">Remember analysis for faster loading</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="enable-cache" checked>
+            <input type="checkbox" id="enable-cache" checked aria-label="Cache Results">
             <span class="slider"></span>
           </label>
         </div>
