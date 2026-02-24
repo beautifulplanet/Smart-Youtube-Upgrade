@@ -1,6 +1,6 @@
 # Privacy Policy - YouTube Safety Inspector
 
-**Last updated:** February 13, 2026
+**Last updated:** June 27, 2025
 
 ## Data Collection
 

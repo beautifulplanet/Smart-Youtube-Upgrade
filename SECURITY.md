@@ -4,7 +4,8 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2.0.x   | :white_check_mark: |
+| 3.0.x   | :white_check_mark: |
+| 2.1.x   | :white_check_mark: |
 | < 2.0   | :x:                |
 
 ## Security Measures
@@ -57,8 +58,9 @@ For Chrome Web Store or production deployment:
 If you discover a security vulnerability:
 
 1. **Do NOT** open a public GitHub issue
-2. Email security concerns to: [your-email@example.com]
-3. Include:
+2. Use [GitHub Security Advisories](https://github.com/beautifulplanet/youtube-safety-inspector/security/advisories/new) to report privately
+3. Alternatively, open a private vulnerability report via GitHub's "Report a vulnerability" button
+4. Include:
    - Description of the vulnerability
    - Steps to reproduce
    - Potential impact
