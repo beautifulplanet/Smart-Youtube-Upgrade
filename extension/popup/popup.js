@@ -1,14 +1,27 @@
 // Configuration - API URL can be overridden in settings for production
 // Default is localhost for development
+// SYNC: also declared in background/background.js — keep both in sync
 const DEFAULT_API_URL = 'http://localhost:8000';
+const ALLOWED_API_PATTERNS = [
+  /^https?:\/\/localhost(:\d{1,5})?$/,
+  /^https?:\/\/127\.0\.0\.1(:\d{1,5})?$/,
+  /^https:\/\/[a-z0-9-]+\.beautifulplanet\.dev$/,
+];
 let API_BASE_URL = DEFAULT_API_URL;
+
+/** Validate that an API URL matches the allowlist. */
+function isAllowedApiUrl(url) {
+  return ALLOWED_API_PATTERNS.some(pattern => pattern.test(url));
+}
 
 /** Load user-configured API URL from chrome.storage, falling back to localhost. */
 async function loadApiUrl() {
   try {
     const stored = await chrome.storage.sync.get(['apiBaseUrl']);
-    if (stored.apiBaseUrl) {
+    if (stored.apiBaseUrl && isAllowedApiUrl(stored.apiBaseUrl)) {
       API_BASE_URL = stored.apiBaseUrl;
+    } else if (stored.apiBaseUrl) {
+      console.warn('Rejected untrusted API URL from storage:', stored.apiBaseUrl);
     }
   } catch (e) {
     console.warn('Could not load API URL from storage, using default');
@@ -18,7 +31,6 @@ async function loadApiUrl() {
 // Default settings - comprehensive list
 const DEFAULT_SETTINGS = {
   // Detection
-  enableSafety: true,
   enableAIDetection: true,
   autoAnalyze: true,
 
@@ -46,7 +58,6 @@ const DEFAULT_SETTINGS = {
   safetySensitivity: 'medium',
 
   // Privacy
-  enableAnalytics: false,
   enableCache: true,
 
   // Trusted Channels
@@ -93,6 +104,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize DOM element references
   initElements();
 
+  // Load user-configured API URL (if any) before making API calls
+  await loadApiUrl();
   await loadSettings();
   await checkApiStatus();
   await analyzeCurrentTab();
@@ -119,6 +132,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('import-settings')?.addEventListener('click', importSettings);
   document.getElementById('add-trusted-btn')?.addEventListener('click', addTrustedChannel);
 
+  // API key save handler
+  document.getElementById('save-api-key')?.addEventListener('click', async () => {
+    const input = document.getElementById('api-secret-key');
+    if (!input) return;
+    const key = input.value.trim();
+    await chrome.storage.sync.set({ apiSecretKey: key || '' });
+    alert(key ? 'API key saved.' : 'API key cleared.');
+  });
+
+  // Load saved API key into field
+  chrome.storage.sync.get(['apiSecretKey'], (result) => {
+    const input = document.getElementById('api-secret-key');
+    if (input && result.apiSecretKey) input.value = result.apiSecretKey;
+  });
+
   // Enter key for adding trusted channel
   document.getElementById('new-trusted-channel')?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') addTrustedChannel();
@@ -129,12 +157,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 function setupSettingsListeners() {
   // Toggle checkboxes
   const toggles = [
-    'enable-safety', 'enable-ai-detection', 'auto-analyze',
+    'enable-ai-detection', 'auto-analyze',
     'enable-regular-videos', 'enable-shorts',
     'enable-alternatives', 'enable-ai-tutorials', 'enable-ai-entertainment',
     'enable-reminders', 'enable-end-alert',
     'enable-sound', 'enable-visual-effects',
-    'enable-analytics', 'enable-cache'
+    'enable-cache'
   ];
 
   toggles.forEach(id => {
@@ -206,7 +234,6 @@ async function loadSettings() {
 /** Sync currentSettings values to all checkbox and select UI elements. */
 function applySettingsToUI() {
   // Toggles
-  setCheckbox('enable-safety', currentSettings.enableSafety);
   setCheckbox('enable-ai-detection', currentSettings.enableAIDetection);
   setCheckbox('auto-analyze', currentSettings.autoAnalyze);
   setCheckbox('enable-regular-videos', currentSettings.enableRegularVideos);
@@ -218,7 +245,6 @@ function applySettingsToUI() {
   setCheckbox('enable-end-alert', currentSettings.enableEndAlert);
   setCheckbox('enable-sound', currentSettings.enableSound);
   setCheckbox('enable-visual-effects', currentSettings.enableVisualEffects);
-  setCheckbox('enable-analytics', currentSettings.enableAnalytics);
   setCheckbox('enable-cache', currentSettings.enableCache);
 
   // Selects
@@ -239,7 +265,8 @@ function setSelect(id, value) {
 }
 
 // Escape HTML to prevent XSS - defined early for use in trusted channels
-// Security: Must match utils.js escapeHtml exactly
+// Note: Uses DOM method (safe). utils.js uses string replacement (also safe).
+// Both produce identical output — either approach is acceptable.
 function escapeHtml(text) {
   if (!text) return '';
   const div = document.createElement('div');
@@ -251,7 +278,6 @@ function escapeHtml(text) {
 async function saveSettings() {
   currentSettings = {
     // Detection
-    enableSafety: document.getElementById('enable-safety')?.checked ?? true,
     enableAIDetection: document.getElementById('enable-ai-detection')?.checked ?? true,
     autoAnalyze: document.getElementById('auto-analyze')?.checked ?? true,
 
@@ -279,7 +305,6 @@ async function saveSettings() {
     safetySensitivity: document.getElementById('safety-sensitivity')?.value || 'medium',
 
     // Privacy
-    enableAnalytics: document.getElementById('enable-analytics')?.checked ?? false,
     enableCache: document.getElementById('enable-cache')?.checked ?? true,
 
     // Keep trusted channels
@@ -342,7 +367,41 @@ function importSettings() {
     try {
       const text = await file.text();
       const imported = JSON.parse(text);
-      currentSettings = { ...DEFAULT_SETTINGS, ...imported };
+
+      // V2-2.3: Schema validation — only accept known keys with correct types
+      if (typeof imported !== 'object' || imported === null || Array.isArray(imported)) {
+        throw new Error('Settings must be a JSON object');
+      }
+
+      // Security: Block prototype pollution payloads
+      if ('__proto__' in imported || 'constructor' in imported || 'prototype' in imported) {
+        throw new Error('Invalid settings file');
+      }
+
+      const validated = {};
+      for (const [key, defaultVal] of Object.entries(DEFAULT_SETTINGS)) {
+        if (key in imported) {
+          // Type must match the default value's type
+          if (typeof imported[key] !== typeof defaultVal) {
+            console.warn(`Ignoring invalid type for setting "${key}"`);
+            continue;
+          }
+          // Special validation for arrays (trustedChannels)
+          if (Array.isArray(defaultVal)) {
+            if (!Array.isArray(imported[key]) || !imported[key].every(v => typeof v === 'string')) {
+              console.warn(`Ignoring invalid trustedChannels`);
+              continue;
+            }
+          }
+          // Special validation for enum-like string fields
+          if (key === 'bannerStyle' && !['modal', 'corner', 'bar'].includes(imported[key])) continue;
+          if (key === 'aiSensitivity' && !['low', 'medium', 'high'].includes(imported[key])) continue;
+          if (key === 'safetySensitivity' && !['all', 'medium', 'high'].includes(imported[key])) continue;
+          validated[key] = imported[key];
+        }
+      }
+
+      currentSettings = { ...DEFAULT_SETTINGS, ...validated };
       applySettingsToUI();
       renderTrustedChannels();
       await saveSettings();
@@ -446,7 +505,7 @@ async function analyzeCurrentTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    if (!tab.url || !tab.url.includes('youtube.com/watch')) {
+    if (!tab.url || (!tab.url.includes('youtube.com/watch') && !tab.url.includes('youtube.com/shorts/'))) {
       showState('not-youtube');
       return;
     }
@@ -482,8 +541,11 @@ async function analyzeCurrentTab() {
  * @returns {string|null} 11-character video ID or null
  */
 function extractVideoId(url) {
-  const match = url.match(/[?&]v=([^&]+)/);
-  return match ? match[1] : null;
+  // Match watch?v= (exactly 11 valid chars) or /shorts/ URLs
+  const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})(?:&|$)/);
+  if (watchMatch) return watchMatch[1];
+  const shortsMatch = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+  return shortsMatch ? shortsMatch[1] : null;
 }
 
 /**
@@ -539,12 +601,17 @@ function displayResults(results) {
   if (results.warnings && results.warnings.length > 0) {
     elements.warningsSection?.classList.remove('hidden');
     if (elements.warningsList) {
-      elements.warningsList.innerHTML = results.warnings.map(warning => `
-        <li>
-          <span class="warning-severity ${warning.severity}">${warning.severity}</span>
-          ${escapeHtml(warning.message)}
-        </li>
-      `).join('');
+      elements.warningsList.innerHTML = results.warnings.map(warning => {
+        // V2-2.2: Whitelist severity to prevent class injection
+        const safeSeverity = ['low', 'medium', 'high', 'critical'].includes(warning.severity)
+          ? warning.severity : 'medium';
+        return `
+          <li>
+            <span class="warning-severity ${safeSeverity}">${safeSeverity}</span>
+            ${escapeHtml(warning.message)}
+          </li>
+        `;
+      }).join('');
     }
   } else {
     elements.warningsSection?.classList.add('hidden');
@@ -552,12 +619,16 @@ function displayResults(results) {
 
   // Display categories
   if (results.categories && elements.categoriesList) {
-    elements.categoriesList.innerHTML = Object.entries(results.categories).map(([name, data]) => `
-      <div class="category-badge ${data.flagged ? 'flagged' : 'safe'}">
-        <span class="emoji">${data.emoji || '📋'}</span>
-        ${escapeHtml(name)}
-      </div>
-    `).join('');
+    elements.categoriesList.innerHTML = Object.entries(results.categories).map(([name, data]) => {
+      // V2-2.2: Sanitize emoji — only allow actual emoji characters
+      const safeEmoji = (data.emoji || '📋').replace(/[^\p{Emoji}\s]/gu, '') || '📋';
+      return `
+        <div class="category-badge ${data.flagged ? 'flagged' : 'safe'}">
+          <span class="emoji">${safeEmoji}</span>
+          ${escapeHtml(name)}
+        </div>
+      `;
+    }).join('');
   }
 }
 
@@ -595,7 +666,7 @@ function showError(message) {
 
 // Open full report in new tab
 function openFullReport() {
-  if (currentVideoId) {
+  if (currentVideoId && /^[a-zA-Z0-9_-]{11}$/.test(currentVideoId)) {
     chrome.tabs.create({
       url: `${API_BASE_URL}/report/${currentVideoId}`
     });

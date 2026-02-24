@@ -7,91 +7,163 @@
  * https://developers.google.com/youtube
  */
 
+// Note: For Firefox MV3 support, add browser-polyfill.min.js to lib/ and
+// uncomment the following line. Chrome/Edge use native chrome.* APIs.
+// if (typeof importScripts !== 'undefined') {
+//   try { importScripts('lib/browser-polyfill.min.js'); } catch (_e) { }
+// }
+
+// Global error handlers — keeps the service worker alive on unexpected errors
+self.addEventListener('unhandledrejection', (event) => {
+  console.error('🛡️ Unhandled rejection in service worker:', event.reason);
+});
+self.addEventListener('error', (event) => {
+  console.error('🛡️ Uncaught error in service worker:', event.error);
+});
+
 // Configuration - API URL configurable for production deployment
+// SYNC: also declared in popup/popup.js — keep both in sync
 const DEFAULT_API_URL = 'http://localhost:8000';
+const ALLOWED_API_PATTERNS = [
+  /^https?:\/\/localhost(:\d{1,5})?$/,
+  /^https?:\/\/127\.0\.0\.1(:\d{1,5})?$/,
+  /^https:\/\/[a-z0-9-]+\.beautifulplanet\.dev$/,
+];
 let API_BASE_URL = DEFAULT_API_URL;
+
+/** Validate that an API URL matches the allowlist. */
+function isAllowedApiUrl(url) {
+  return ALLOWED_API_PATTERNS.some(pattern => pattern.test(url));
+}
 
 // Load API URL from storage on startup
 chrome.storage.sync.get(['apiBaseUrl'], (result) => {
-  if (result.apiBaseUrl) {
+  if (result.apiBaseUrl && isAllowedApiUrl(result.apiBaseUrl)) {
     API_BASE_URL = result.apiBaseUrl;
+  } else if (result.apiBaseUrl) {
+    console.warn('🛡️ Rejected untrusted API URL from storage:', result.apiBaseUrl);
   }
 });
-
-// Cache for analysis results
-const analysisCache = new Map();
-
-// Rate limiting to prevent quota exhaustion
-const rateLimiter = new Map();
-const COOLDOWN_MS = 30000; // 30 seconds between same video analyses
-const DAILY_LIMIT = 100; // Max 100 unique videos per day per user
-let dailyRequestCount = 0;
-let dailyResetDate = new Date().toDateString();
-
-// Load persisted daily count from chrome.storage.local on startup
-chrome.storage.local.get(['rateLimitCount', 'rateLimitDate'], (result) => {
-  const today = new Date().toDateString();
-  if (result.rateLimitDate === today) {
-    dailyRequestCount = result.rateLimitCount || 0;
-    dailyResetDate = today;
-  }
-});
-
-/** Persist daily rate limit count to chrome.storage.local */
-function persistDailyCount() {
-  chrome.storage.local.set({
-    rateLimitCount: dailyRequestCount,
-    rateLimitDate: dailyResetDate
-  });
-}
 
 /**
- * Check if a video can be analyzed (rate limiting).
- * Enforces per-video cooldown and daily request limit.
- * @param {string} videoId - YouTube video ID
- * @returns {boolean} Whether analysis is allowed
+ * W2.1: Storage Wrapper
+ * Helper to handle async storage calls cleanly.
+ * Falls back to local storage if session is unavailable (e.g. Firefox pending MV3 support).
  */
-function canAnalyze(videoId) {
-  // Reset daily counter at midnight
-  const today = new Date().toDateString();
-  if (dailyResetDate !== today) {
-    dailyRequestCount = 0;
-    dailyResetDate = today;
-    rateLimiter.clear();
-    persistDailyCount();
+const storage = {
+  // session: ephemeral, clears on browser close. Good for cache & rate limits.
+  // local: persistent. Good for daily counts.
+
+  async get(key, area = 'session') {
+    try {
+      // Firefox MV3 doesn't fully support storage.session in content scripts yet,
+      // but does in background. Safety check just in case.
+      const useArea = (area === 'session' && !chrome.storage.session) ? 'local' : area;
+      const result = await chrome.storage[useArea].get(key);
+      return result[key];
+    } catch (e) {
+      console.warn(`Storage get error (${area}):`, e);
+      return null;
+    }
+  },
+
+  async set(key, value, area = 'session') {
+    try {
+      const useArea = (area === 'session' && !chrome.storage.session) ? 'local' : area;
+      await chrome.storage[useArea].set({ [key]: value });
+    } catch (e) {
+      console.warn(`Storage set error (${area}):`, e);
+    }
+  },
+
+  async remove(key, area = 'session') {
+    try {
+      const useArea = (area === 'session' && !chrome.storage.session) ? 'local' : area;
+      await chrome.storage[useArea].remove(key);
+    } catch (e) {
+      console.warn(`Storage remove error (${area}):`, e);
+    }
   }
+};
 
-  // Check daily limit
-  if (dailyRequestCount >= DAILY_LIMIT) {
-    return false;
+// Rate limiting to prevent quota exhaustion
+const COOLDOWN_MS = 30000; // 30 seconds between same video analyses
+const DAILY_LIMIT = 100; // Max 100 unique videos per day per user
+
+/**
+ * W2.3: Async Rate Limiter
+ * Check if a video can be analyzed.
+ * Enforces per-video cooldown (session storage) and daily request limit (local storage).
+ * @param {string} videoId - YouTube video ID
+ * @returns {Promise<boolean>} Whether analysis is allowed
+ */
+// Mutex to prevent TOCTOU race on concurrent canAnalyze calls
+let _rateLimitLock = Promise.resolve();
+
+async function canAnalyze(videoId) {
+  // Serialize access to prevent two concurrent calls both reading the same count
+  const release = _rateLimitLock;
+  let _resolve;
+  _rateLimitLock = new Promise(r => { _resolve = r; });
+  await release;
+
+  try {
+    const today = new Date().toDateString();
+
+    // 1. Get daily limit state (persistent)
+    const localState = await storage.get('rateLimitState', 'local') || { count: 0, date: today };
+
+    // Reset if new day
+    if (localState.date !== today) {
+      localState.count = 0;
+      localState.date = today;
+    }
+
+    // Check daily limit
+    if (localState.count >= DAILY_LIMIT) {
+      console.warn(`Daily limit reached: ${localState.count}/${DAILY_LIMIT}`);
+      return false;
+    }
+
+    // 2. Check cooldown (session ephemeral)
+    const lastCall = await storage.get(`cooldown_${videoId}`, 'session');
+    const now = Date.now();
+
+    if (lastCall && (now - lastCall) < COOLDOWN_MS) {
+      return false;
+    }
+
+    // 3. Atomically update both counters before releasing the lock
+    await storage.set(`cooldown_${videoId}`, now, 'session');
+    localState.count++;
+    await storage.set('rateLimitState', localState, 'local');
+
+    return true;
+  } finally {
+    _resolve();
   }
-
-  const lastCall = rateLimiter.get(videoId);
-  const now = Date.now();
-
-  if (lastCall && (now - lastCall) < COOLDOWN_MS) {
-    return false;
-  }
-
-  rateLimiter.set(videoId, now);
-  dailyRequestCount++;
-  persistDailyCount();
-  return true;
 }
 
 // Listen for messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'ANALYZE_VIDEO') {
-    analyzeVideo(message.videoId, message.title, message.description, message.channel)
-      .then(results => sendResponse({ success: true, data: results }))
+    const tabId = sender?.tab?.id;
+    // Return true to keep channel open for async response
+    analyzeVideo(message.videoId, message.title, message.description, message.channel, message.force)
+      .then(results => {
+        updateBadge(results.safety_score, tabId);
+        sendResponse({ success: true, data: results });
+      })
       .catch(error => sendResponse({ success: false, error: error.message }));
-    return true; // Keep channel open for async response
+    return true;
   }
 
   if (message.type === 'GET_CACHED_ANALYSIS') {
-    const cached = analysisCache.get(message.videoId);
-    sendResponse({ success: !!cached, data: cached });
-    return false;
+    // W2.2: Async cache retrieval
+    storage.get(`cache_${message.videoId}`, 'session').then(cached => {
+      sendResponse({ success: !!cached, data: cached });
+    });
+    return true; // Keep channel open
   }
 
   if (message.type === 'CHECK_API_STATUS') {
@@ -102,7 +174,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   // Generic API fetch handler - restricted to known endpoints only
-  if (message.action === 'fetchAPI') {
+  if (message.type === 'FETCH_API') {
     // Security: Only allow known API endpoints, never arbitrary URLs
     const ALLOWED_ENDPOINTS = ['/analyze', '/ai-tutorials', '/ai-entertainment', '/real-alternatives', '/health', '/signatures', '/categories'];
     const endpoint = message.endpoint;
@@ -121,6 +193,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+// Load API key from storage (optional, for authenticated backends)
+let _apiSecretKey = '';
+chrome.storage.sync.get(['apiSecretKey'], (result) => {
+  if (result.apiSecretKey) _apiSecretKey = result.apiSecretKey;
+});
+
 /**
  * Make an API request to the backend.
  * @param {string} url - Full API URL
@@ -129,9 +207,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  * @returns {Promise<Object>} Parsed JSON response
  */
 async function fetchFromAPI(url, method = 'GET', body = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  // Include API key if configured (for authenticated backends)
+  if (_apiSecretKey) headers['X-API-Key'] = _apiSecretKey;
+
   const options = {
     method,
-    headers: { 'Content-Type': 'application/json' }
+    headers
   };
 
   if (body && method !== 'GET') {
@@ -155,19 +237,26 @@ async function fetchFromAPI(url, method = 'GET', body = null) {
  * @param {string|null} [channel] - Scraped channel name
  * @returns {Promise<Object>} Analysis results
  */
-async function analyzeVideo(videoId, title = null, description = null, channel = null) {
-  // Check rate limit first
-  if (!canAnalyze(videoId)) {
-    // Return cached result if available
-    if (analysisCache.has(videoId)) {
-      return analysisCache.get(videoId);
+async function analyzeVideo(videoId, title = null, description = null, channel = null, force = false) {
+  console.log('🛡️ analyzeVideo called:', videoId, '| API:', API_BASE_URL, '| force:', force);
+
+  // W2.2: Check cache from storage first (skip if force re-analyze)
+  if (!force) {
+    const cached = await storage.get(`cache_${videoId}`, 'session');
+    if (cached) {
+      console.log('🛡️ Returning cached result for:', videoId);
+      return cached;
     }
-    throw new Error('Rate limited - please wait 30s before re-analyzing');
+  } else {
+    // Clear old cache for this video
+    await storage.remove(`cache_${videoId}`, 'session');
+    console.log('🛡️ Force re-analyze: cleared cache for:', videoId);
   }
 
-  // Check cache first
-  if (analysisCache.has(videoId)) {
-    return analysisCache.get(videoId);
+  // W2.4: Check rate limit (Async)
+  const allowed = await canAnalyze(videoId);
+  if (!allowed) {
+    throw new Error('Rate limited - please wait 30s before re-analyzing');
   }
 
   // Include scraped metadata for AI detection (works without YouTube API key)
@@ -178,22 +267,14 @@ async function analyzeVideo(videoId, title = null, description = null, channel =
     channel: channel
   };
 
-  const response = await fetch(`${API_BASE_URL}/analyze`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody)
-  });
+  console.log('🛡️ Fetching:', `${API_BASE_URL}/analyze`, requestBody);
+  // Use fetchFromAPI so X-API-Key header is included when configured
+  const results = await fetchFromAPI(`${API_BASE_URL}/analyze`, 'POST', requestBody);
+  console.log('🛡️ Analysis result: score=' + results.safety_score + ', ai=' + results.ai_generated + ', warnings=' + (results.warnings || []).length);
 
-  if (!response.ok) {
-    console.error('🛡️ API request failed:', response.status, response.statusText);
-    throw new Error('Analysis failed');
-  }
-
-  const results = await response.json();
-  analysisCache.set(videoId, results);
-
-  // Update badge based on safety score
-  updateBadge(results.safety_score);
+  // W2.2: Write to storage cache (expires on browser close)
+  // Prefixed with cache_ to avoid collisions
+  await storage.set(`cache_${videoId}`, results, 'session');
 
   return results;
 }
@@ -202,7 +283,7 @@ async function analyzeVideo(videoId, title = null, description = null, channel =
  * Update the extension toolbar badge based on safety score.
  * @param {number} score - Safety score (0-100)
  */
-function updateBadge(score) {
+function updateBadge(score, tabId) {
   let color, text;
 
   if (score < 40) {
@@ -216,8 +297,9 @@ function updateBadge(score) {
     text = '✓';
   }
 
-  chrome.action.setBadgeBackgroundColor({ color });
-  chrome.action.setBadgeText({ text });
+  const tabOpts = tabId ? { tabId } : {};
+  chrome.action.setBadgeBackgroundColor({ color, ...tabOpts });
+  chrome.action.setBadgeText({ text, ...tabOpts });
 }
 
 /**
@@ -236,17 +318,11 @@ async function checkApiStatus() {
   }
 }
 
-// Clear badge when navigating away from YouTube
+// Clear badge when navigating away from YouTube videos
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.url && !changeInfo.url.includes('youtube.com/watch')) {
+  if (changeInfo.url && !changeInfo.url.includes('youtube.com/watch') && !changeInfo.url.includes('youtube.com/shorts/')) {
     chrome.action.setBadgeText({ text: '', tabId });
   }
 });
 
-// Clean up old cache entries periodically (keep last 50)
-setInterval(() => {
-  if (analysisCache.size > 50) {
-    const keysToDelete = Array.from(analysisCache.keys()).slice(0, analysisCache.size - 50);
-    keysToDelete.forEach(key => analysisCache.delete(key));
-  }
-}, 60000);
+

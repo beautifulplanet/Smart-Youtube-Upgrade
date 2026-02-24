@@ -245,6 +245,24 @@ function injectAIBanner() {
 }
 
 /**
+ * Reload the currently active AI banner tab when format (Videos/Shorts) is toggled.
+ * Clears loaded state so loadTabContent will re-fetch with new format preference.
+ */
+function reloadCurrentTab() {
+  const banner = document.getElementById('ai-content-banner');
+  if (!banner) return;
+  const activeTab = banner.querySelector('.yt-tab.active');
+  if (!activeTab) return;
+  const tabName = activeTab.dataset.tab;
+  // Clear loaded flag for this tab so it reloads
+  const loaded = (banner.dataset.loadedTabs || '').split(',').filter(t => t && t !== tabName);
+  banner.dataset.loadedTabs = loaded.join(',');
+  if (typeof loadTabContent === 'function') {
+    loadTabContent(tabName, true);
+  }
+}
+
+/**
  * Create an XSS-safe video card element for alternative suggestions.
  * @param {Object} video - Video data (title, channel, thumbnail, url, badge)
  * @param {string} [type='real'] - Card type: 'real', 'tutorials', or 'entertainment'
@@ -260,10 +278,10 @@ function createVideoCard(video, type = 'real') {
     : '#';
 
   return `
-    <div class="yt-video-card" onclick="window.location.href='${safeUrl}'">
+    <div class="yt-video-card" data-href="${safeUrl}">
       <div class="yt-thumb-container">
         <img class="yt-thumb" src="${escapeHtml(video.thumbnail || '')}" alt="" loading="lazy"
-             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 180%22><rect fill=%22%23272727%22 width=%22320%22 height=%22180%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23717171%22 font-size=%2224%22 text-anchor=%22middle%22 dy=%22.3em%22>🎬</text></svg>'">
+             data-fallback="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 180%22><rect fill=%22%23272727%22 width=%22320%22 height=%22180%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23717171%22 font-size=%2224%22 text-anchor=%22middle%22 dy=%22.3em%22>🎬</text></svg>">
         <div class="yt-thumb-overlay">
           <div class="yt-play-icon"></div>
         </div>
@@ -306,6 +324,9 @@ function showAIBanner(message, duration = 0, alternatives = [], detectedAnimal =
   // Show the banner
   banner.style.display = 'block';
 
+  // Attach delegated click/error handlers for video cards and thumbnails
+  attachCardHandlers(banner);
+
   // Immediately load all tabs content (don't wait for alternatives to be passed in)
   if (typeof loadTabContent === 'function') {
     loadTabContent('real', true);
@@ -319,6 +340,37 @@ function showAIBanner(message, duration = 0, alternatives = [], detectedAnimal =
       banner.style.display = 'none';
     }, duration);
   }
+}
+
+/**
+ * Attach delegated click/error handlers for video cards — CSP-safe replacement
+ * for inline onclick and onerror attributes.
+ * @param {HTMLElement} container - Parent container to attach handlers to
+ */
+function attachCardHandlers(container) {
+  // Prevent duplicate listeners by marking the container
+  if (container._ysiHandlersAttached) return;
+  container._ysiHandlersAttached = true;
+
+  // Delegated click handler for video cards (replaces inline onclick)
+  container.addEventListener('click', (e) => {
+    const card = e.target.closest('.yt-video-card[data-href]');
+    if (card && card.dataset.href && card.dataset.href !== '#') {
+      const href = card.dataset.href;
+      // Only allow navigation to exact YouTube watch/shorts URLs
+      if (/^https:\/\/(www\.)?youtube\.com\/(watch\?v=[a-zA-Z0-9_-]{11}|shorts\/[a-zA-Z0-9_-]{11})/.test(href)) {
+        window.location.href = href;
+      }
+    }
+  });
+
+  // Delegated error handler for thumbnail images (works for dynamically loaded images too)
+  container.addEventListener('error', (e) => {
+    if (e.target.matches && e.target.matches('img.yt-thumb[data-fallback]')) {
+      e.target.src = e.target.dataset.fallback;
+      delete e.target.dataset.fallback; // Prevent infinite loop
+    }
+  }, true); // useCapture: true — error events don't bubble, but they do propagate in capture phase
 }
 
 /**

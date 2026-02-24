@@ -10,7 +10,10 @@
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://youtube.com/*",
-    "https://*.beautifulplanet.dev/*"
+    "http://localhost:8000/*",
+    "https://localhost:8000/*",
+    "http://127.0.0.1:8000/*",
+    "https://127.0.0.1:8000/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://www.youtube.com https://www.youtube-nocookie.com"

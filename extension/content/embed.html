@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YSI Player</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <iframe id="player" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const videoId = params.get('v');
+    const autoplay = params.get('autoplay') === '1' ? '1' : '0';
+    const mute = params.get('mute') === '1' ? '1' : '0';
+
+    if (videoId && /^[\w-]{11}$/.test(videoId)) {
+      const embedParams = new URLSearchParams({
+        autoplay,
+        mute,
+        enablejsapi: '1', // Required for JS control
+        controls: '1',
+        modestbranding: '1',
+        rel: '0',
+        fs: '0',
+        iv_load_policy: '3',
+        playsinline: '1',
+      });
+      const iframe = document.getElementById('player');
+      iframe.src = `https://www.youtube.com/embed/${videoId}?${embedParams.toString()}`;
+
+      // Proxy messages from parent (content script) to inner YouTube iframe
+      window.addEventListener('message', (event) => {
+        // Security: We accept messages from our own extension origin by default
+        // The YouTube iframe listens for postMessage objects
+        if (iframe.contentWindow) {
+          iframe.contentWindow.postMessage(event.data, '*');
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>

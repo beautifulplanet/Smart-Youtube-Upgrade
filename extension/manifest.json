@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Safety Inspector",
-  "version": "2.1.0",
+  "version": "3.0.1",
   "description": "Analyzes YouTube videos for potentially dangerous or misleading content, AI detection, and suggests safe alternatives",
   "permissions": [
     "activeTab",
@@ -16,7 +16,7 @@
     "https://127.0.0.1:8000/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://www.youtube.com https://www.youtube-nocookie.com"
   },
   "action": {
     "default_popup": "popup/popup.html",
@@ -29,19 +29,32 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.youtube.com/watch*", 
-        "https://youtube.com/watch*",
-        "https://www.youtube.com/shorts/*",
-        "https://youtube.com/shorts/*"
+        "https://www.youtube.com/*",
+        "https://youtube.com/*"
       ],
       "js": [
         "content/utils.js",
+        "content/modes.js",
+        "content/sidebar.js",
         "content/overlay.js",
         "content/analysis.js",
         "content/content.js"
       ],
-      "css": ["content/content.css"],
+      "css": [
+        "content/content.css"
+      ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://youtube.com/*"
+      ],
+      "js": [
+        "content/bridge.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start"
     }
   ],
   "background": {
@@ -51,5 +64,16 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content/sidebar.css"
+      ],
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://youtube.com/*"
+      ]
+    }
+  ]
 }

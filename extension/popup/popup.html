@@ -68,16 +68,6 @@
         <h3>🔍 Detection</h3>
         <div class="toggle-row">
           <div class="toggle-info">
-            <span class="toggle-label">⚠️ Safety Warnings</span>
-            <span class="toggle-desc">Detect dangerous DIY, medical, cooking content</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="enable-safety" checked aria-label="Safety Warnings">
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="toggle-row">
-          <div class="toggle-info">
             <span class="toggle-label">🤖 AI Content Detection</span>
             <span class="toggle-desc">Flag AI-generated or fake videos</span>
           </div>
@@ -288,19 +278,20 @@
         </div>
       </div>
 
+      <!-- Advanced / API Settings -->
+      <div class="settings-section">
+        <h3>🔧 Advanced</h3>
+        <p class="settings-info">Backend connection settings</p>
+        <div class="input-row" style="margin-bottom: 8px;">
+          <label for="api-secret-key" class="input-label">API Key</label>
+          <input type="password" id="api-secret-key" placeholder="Leave empty if not required" autocomplete="off" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--bg-secondary);color:var(--text);">
+        </div>
+        <button id="save-api-key" class="btn-small" style="margin-top:4px;">Save API Key</button>
+      </div>
+
       <!-- Data & Privacy -->
       <div class="settings-section">
         <h3>🔒 Privacy</h3>
-        <div class="toggle-row">
-          <div class="toggle-info">
-            <span class="toggle-label">📊 Analytics</span>
-            <span class="toggle-desc">Help improve detection (anonymous)</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="enable-analytics" aria-label="Analytics">
-            <span class="slider"></span>
-          </label>
-        </div>
         <div class="toggle-row">
           <div class="toggle-info">
             <span class="toggle-label">💾 Cache Results</span>
@@ -325,10 +316,11 @@
         <span class="status-dot" id="api-status-dot"></span>
         <span id="api-status-text">Checking API...</span>
       </div>
-      <div class="version">v2.0.0</div>
+      <div class="version">v3.0.1</div>
     </footer>
   </div>
 
+  <script src="../lib/browser-polyfill.min.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

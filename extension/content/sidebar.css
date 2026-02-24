@@ -1,0 +1,613 @@
+/**
+ * YouTube Safety Inspector - Sidebar Styles (v4 — Analysis Hub)
+ * Two-state: CHILL (green badge + thumbnails) / ALERT (score ring + flags)
+ */
+
+/* ═══════════════════════════════════════════════
+   Host / Root Variables
+   ═══════════════════════════════════════════════ */
+
+:host {
+  --bg: #0f0f0f;
+  --bg-raised: #1a1a1a;
+  --bg-card: #212121;
+  --bg-hover: #272727;
+  --text-primary: #f1f1f1;
+  --text-secondary: #aaa;
+  --text-muted: #717171;
+  --border: #303030;
+  --brand: #22c55e;
+  --brand-dim: rgba(34, 197, 94, 0.15);
+  --danger: #ef4444;
+  --danger-dim: rgba(239, 68, 68, 0.15);
+  --warning: #f97316;
+  --warning-dim: rgba(249, 115, 22, 0.15);
+  --blue: #3b82f6;
+  --blue-dim: rgba(59, 130, 246, 0.15);
+  --success: #22c55e;
+  --success-dim: rgba(34, 197, 94, 0.15);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --sidebar-w: 380px;
+  --collapse-w: 48px;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Roboto', 'YouTube Noto', Arial, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════
+   Sidebar Container
+   ═══════════════════════════════════════════════ */
+
+.ysi-sidebar {
+  pointer-events: auto;
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+  overflow: hidden;
+  transition: width var(--transition), transform var(--transition);
+}
+
+.ysi-sidebar.hidden {
+  transform: translateX(100%);
+  pointer-events: none;
+}
+
+.ysi-sidebar.collapsed {
+  width: var(--collapse-w);
+}
+
+.ysi-sidebar.collapsed .ysi-header,
+.ysi-sidebar.collapsed .ysi-state {
+  display: none;
+}
+
+.ysi-sidebar.collapsed .ysi-collapsed-strip {
+  display: flex;
+}
+
+/* ═══════════════════════════════════════════════
+   Collapsed Strip
+   ═══════════════════════════════════════════════ */
+
+.ysi-collapsed-strip {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 12px;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.ysi-strip-icon-btn {
+  font-size: 22px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.ysi-strip-icon-btn:hover {
+  transform: scale(1.15);
+}
+
+/* ═══════════════════════════════════════════════
+   Header
+   ═══════════════════════════════════════════════ */
+
+.ysi-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.ysi-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ysi-header-icon {
+  font-size: 18px;
+}
+
+.ysi-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════
+   Icon Button (generic)
+   ═══════════════════════════════════════════════ */
+
+.ysi-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.ysi-icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════
+   States
+   ═══════════════════════════════════════════════ */
+
+.ysi-state {
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+  flex: 1;
+  padding: 12px;
+  gap: 12px;
+}
+
+.ysi-state.active {
+  display: flex;
+}
+
+/* Analyzing spinner animation */
+.ysi-spin {
+  animation: ysi-spin-anim 1.5s ease-in-out infinite;
+}
+@keyframes ysi-spin-anim {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Scrollbar */
+.ysi-state::-webkit-scrollbar { width: 6px; }
+.ysi-state::-webkit-scrollbar-track { background: transparent; }
+.ysi-state::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.ysi-state::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ═══════════════════════════════════════════════
+   CHILL State — Badge
+   ═══════════════════════════════════════════════ */
+
+.ysi-chill-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 20px 16px 16px;
+  background: var(--success-dim);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.ysi-chill-icon {
+  font-size: 32px;
+}
+
+.ysi-chill-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.ysi-chill-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════
+   ALERT State — Score Ring
+   ═══════════════════════════════════════════════ */
+
+.ysi-alert-score-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.ysi-score-ring {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.ysi-score-ring svg {
+  transform: rotate(-90deg);
+}
+
+.ysi-score-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 5;
+}
+
+.ysi-score-fg {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 163.36;
+  stroke-dashoffset: 163.36;
+  transition: stroke-dashoffset 1s var(--transition), stroke 0.3s;
+}
+
+.ysi-score-value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ysi-score-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ysi-score-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ysi-score-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════
+   Flags
+   ═══════════════════════════════════════════════ */
+
+.ysi-flags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ysi-flag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.ysi-flag.safe {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: var(--success-dim);
+}
+
+.ysi-flag.caution {
+  border-color: rgba(249, 115, 22, 0.3);
+  background: var(--warning-dim);
+}
+
+.ysi-flag.danger {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: var(--danger-dim);
+}
+
+.ysi-flag-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.ysi-flag-label {
+  flex: 1;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.ysi-flag-score {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 24px;
+  text-align: right;
+}
+
+/* ═══════════════════════════════════════════════
+   Warnings
+   ═══════════════════════════════════════════════ */
+
+.ysi-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ysi-warning-card {
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--warning);
+}
+
+.ysi-warning-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.ysi-warning-msg {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Evidence highlight section inside warning cards */
+.ysi-evidence-section {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ysi-evidence-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ysi-evidence-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 5px;
+  flex-wrap: wrap;
+}
+
+.ysi-evidence-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.ysi-evidence-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  word-break: break-word;
+}
+
+/* Evidence type colors */
+.ysi-ev-channel {
+  background: rgba(255, 68, 68, 0.15);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+.ysi-ev-title {
+  background: rgba(255, 165, 0, 0.15);
+  color: #ffa94d;
+  border: 1px solid rgba(255, 165, 0, 0.3);
+}
+
+.ysi-ev-desc {
+  background: rgba(255, 200, 50, 0.12);
+  color: #ffd43b;
+  border: 1px solid rgba(255, 200, 50, 0.25);
+}
+
+.ysi-ev-cooccur {
+  background: rgba(190, 75, 255, 0.15);
+  color: #d175ff;
+  border: 1px solid rgba(190, 75, 255, 0.3);
+}
+
+.ysi-ev-hashtag {
+  background: rgba(50, 180, 255, 0.15);
+  color: #64b5f6;
+  border: 1px solid rgba(50, 180, 255, 0.25);
+}
+
+.ysi-ev-other {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ═══════════════════════════════════════════════
+   Section Label
+   ═══════════════════════════════════════════════ */
+
+.ysi-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ysi-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ═══════════════════════════════════════════════
+   Thumbnail Grid
+   ═══════════════════════════════════════════════ */
+
+.ysi-thumb-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding-right: 2px;
+}
+
+.ysi-thumb-grid::-webkit-scrollbar { width: 4px; }
+.ysi-thumb-grid::-webkit-scrollbar-track { background: transparent; }
+.ysi-thumb-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.ysi-thumb-card {
+  display: flex;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.ysi-thumb-card:hover {
+  background: var(--bg-hover);
+}
+
+.ysi-thumb-wrap {
+  position: relative;
+  width: 140px;
+  min-width: 140px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.ysi-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ysi-thumb-hover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.ysi-thumb-card:hover .ysi-thumb-hover {
+  opacity: 1;
+}
+
+.ysi-play-icon {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 10px 0 10px 18px;
+  border-color: transparent transparent transparent #fff;
+}
+
+.ysi-thumb-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.ysi-thumb-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ysi-thumb-channel {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════
+   Loading / Empty States
+   ═══════════════════════════════════════════════ */
+
+.ysi-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.ysi-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: ysi-spin 0.8s linear infinite;
+}
+
+@keyframes ysi-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ysi-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.ysi-empty-icon {
+  font-size: 28px;
+}

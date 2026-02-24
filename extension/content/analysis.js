@@ -6,8 +6,44 @@
 
 // State for analysis
 let currentVideoId = null;
-let isAnalyzing = false;
 let lastAnalysisTime = 0;
+
+// Default settings (must match popup.js defaults)
+const DEFAULT_SETTINGS = {
+    enableAIDetection: true,
+    autoAnalyze: true,
+    enableRegularVideos: true,
+    enableShorts: true,
+    enableAlternatives: true
+};
+
+// Cached settings — updated via storage.onChanged listener to avoid
+// reading chrome.storage.sync on every checkVideo() call (#16)
+let _cachedSettings = null;
+
+// Listen for settings changes from popup
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'sync' && changes.inspectorSettings) {
+        _cachedSettings = { ...DEFAULT_SETTINGS, ...changes.inspectorSettings.newValue };
+    }
+});
+
+/**
+ * W3.1: Get settings from storage with defaults
+ * Uses cache when available to avoid repeated async I/O.
+ * @returns {Promise<Object>} Settings object
+ */
+async function getSettings() {
+    if (_cachedSettings) return _cachedSettings;
+    try {
+        const result = await chrome.storage.sync.get('inspectorSettings');
+        _cachedSettings = { ...DEFAULT_SETTINGS, ...result.inspectorSettings };
+        return _cachedSettings;
+    } catch (err) {
+        console.warn('Failed to load settings, using defaults:', err);
+        return DEFAULT_SETTINGS;
+    }
+}
 
 /**
  * Main function to trigger video analysis
@@ -18,13 +54,42 @@ async function checkVideo(videoId, force = false) {
     try {
         if (!videoId) return;
 
+        // --- AD-FIRST GATE ---
+        // If a pre-roll ad is playing, show "Ad Playing" and defer analysis.
+        // The ad-check interval (content.js) will call checkVideo() when the ad ends.
+        if (typeof isAdPlaying === 'function' && isAdPlaying()) {
+            console.log('🛡️ Ad playing — deferring analysis until ad finishes');
+            currentVideoId = videoId; // remember which video to analyze later
+            if (typeof hideAllOverlays === 'function') hideAllOverlays();
+            if (typeof setSidebarMode === 'function') setSidebarMode('ad');
+            return; // Exit — ad interval will re-call us
+        }
+
         // Prevent duplicate checks
         if (videoId === currentVideoId && !force && (Date.now() - lastAnalysisTime < 30000)) {
             return;
         }
 
+        // W3.2: Check Auto-Analyze setting
+        const settings = await getSettings();
+        if (!force && !settings.autoAnalyze) {
+            console.log('🛡️ Auto-analyze disabled by user');
+            return;
+        }
+
+        // Check video type settings
+        const isShorts = location.pathname.includes('/shorts/');
+        if (!isShorts && !settings.enableRegularVideos) {
+            console.log('🛡️ Regular video analysis disabled by user');
+            return;
+        }
+        if (isShorts && !settings.enableShorts) {
+            console.log('🛡️ Shorts analysis disabled by user');
+            return;
+        }
+
         currentVideoId = videoId;
-        isAnalyzing = true;
+
         lastAnalysisTime = Date.now();
 
         // Hide previous overlays
@@ -36,69 +101,114 @@ async function checkVideo(videoId, force = false) {
         const description = typeof getVideoDescription === 'function' ? getVideoDescription() : '';
 
         // Send message to background script to handle API call
+        console.log('🛡️ Sending ANALYZE_VIDEO for', videoId, '| title:', title, '| channel:', channel, '| force:', force);
+
+        // Show analyzing state in sidebar
+        if (typeof setSidebarMode === 'function') {
+            setSidebarMode('analyzing');
+        }
+
         chrome.runtime.sendMessage({
             type: 'ANALYZE_VIDEO',
             videoId: videoId,
             title: title,
             channel: channel,
-            description: description
+            description: description,
+            force: force
         }, (response) => {
-            isAnalyzing = false;
-
             if (chrome.runtime.lastError) {
-                console.error('\ud83d\udee1\ufe0f Analysis error:', chrome.runtime.lastError);
+                console.error('🛡️ Analysis error:', chrome.runtime.lastError);
+                if (typeof showSidebarError === 'function') {
+                    showSidebarError('Connection Error', chrome.runtime.lastError.message);
+                }
                 return;
             }
 
+            console.log('🛡️ Analysis response:', JSON.stringify(response).substring(0, 300));
+
             if (response && response.success) {
-                processAnalysisResults(response.data);
+                console.log('🛡️ Got results: score=' + response.data.safety_score +
+                    ', ai=' + response.data.ai_generated +
+                    ', warnings=' + (response.data.warnings || []).length);
+                // W3.3: Pass settings to processing
+                processAnalysisResults(response.data, settings);
             } else if (response && response.error) {
-                console.error('\ud83d\udee1\ufe0f API Error:', response.error);
+                console.error('🛡️ API Error:', response.error);
+                if (typeof showSidebarError === 'function') {
+                    showSidebarError('Analysis Failed', response.error);
+                }
+            } else {
+                console.error('🛡️ No response from background script');
+                if (typeof showSidebarError === 'function') {
+                    showSidebarError('No Response', 'Background script did not respond');
+                }
             }
         });
     } catch (err) {
         console.error('\ud83d\udee1\ufe0f Error in checkVideo:', err);
-        isAnalyzing = false;
+
     }
 }
 
 /**
  * Process results from backend and update UI
  * @param {Object} results Analysis results JSON
+ * @param {Object} settings User settings
  */
-function processAnalysisResults(results) {
+function processAnalysisResults(results, settings = DEFAULT_SETTINGS) {
     try {
         if (results.error) {
-            console.error('\ud83d\udee1\ufe0f API Error:', results.error);
+            console.error('🛡️ API Error:', results.error);
             return;
         }
 
-        // 1. Safety Score Check
-        // Show overlay if score is low AND has severe warnings
-        if (results.safety_score < 35 && results.warnings && results.warnings.length > 0) {
+        console.log('🛡️ Processing results: score=' + results.safety_score + ', ai=' + results.ai_generated);
+
+        // Update sidebar with results (two-state: chill / alert)
+        if (typeof updateSidebarWithResults === 'function') {
+            updateSidebarWithResults(results, settings);
+        } else {
+            console.error('🛡️ updateSidebarWithResults not available!');
+        }
+
+        // 1. Safety Score Check (always on — safety guardrails are standard)
+        // Threshold aligned with sidebar's alert state (<75) — overlay only for severe cases
+        if (results.safety_score < 50 && results.warnings && results.warnings.length > 0) {
             const severeWarnings = results.warnings.filter(w => w.severity === 'high');
 
             if (severeWarnings.length > 0) {
+                // Show overlay
                 if (typeof injectOverlay === 'function') injectOverlay();
 
                 const scoreEl = document.getElementById('safety-score');
                 const commentsEl = document.getElementById('warning-comments');
                 const overlay = document.getElementById('safety-overlay');
 
-                if (scoreEl) scoreEl.textContent = results.safety_score;
+                if (scoreEl) {
+                    scoreEl.textContent = results.safety_score;
+                    scoreEl.setAttribute('role', 'meter');
+                    scoreEl.setAttribute('aria-valuenow', results.safety_score);
+                    scoreEl.setAttribute('aria-valuemin', '0');
+                    scoreEl.setAttribute('aria-valuemax', '100');
+                    scoreEl.setAttribute('aria-label', `Safety Score: ${results.safety_score} out of 100`);
+                }
+
                 if (commentsEl) {
-                    commentsEl.innerHTML = results.warnings.map(w =>
-                        `<div style="padding: 10px; background: rgba(255,0,0,0.1); border-left: 3px solid #ff4444; margin-bottom: 8px;">
-            <div style="font-weight: 700; color: #ff4444; font-size: 13px;">${escapeHtml(w.category)}</div>
-            <div style="color: #ddd; font-size: 13px;">${escapeHtml(w.message)}</div>
-          </div>`
+                    commentsEl.setAttribute('role', 'alert');
+                    commentsEl.innerHTML = severeWarnings.map(w =>
+                        `<div class="ysi-warning-card" style="padding: 12px; background: rgba(255,68,68,0.1); border-left: 4px solid #ff4444; margin-bottom: 10px; border-radius: 4px;">
+                            <div style="font-weight: 700; color: #ff4444; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                <span aria-hidden="true">⚠️</span> ${escapeHtml(w.category)}
+                            </div>
+                            <div style="color: #eee; font-size: 13px; line-height: 1.4;">${escapeHtml(w.message)}</div>
+                        </div>`
                     ).join('');
                 }
 
                 if (overlay) overlay.style.display = 'flex';
 
-                // Auto-load alternatives for dangerous content
-                if (results.alternatives && results.alternatives.length > 0) {
+                // Auto-load alternatives for dangerous content (Gated by enableAlternatives)
+                if (settings.enableAlternatives && results.alternatives && results.alternatives.length > 0) {
                     const altSection = document.getElementById('alternatives-section');
                     const altList = document.getElementById('alternatives-list');
 
@@ -110,8 +220,8 @@ function processAnalysisResults(results) {
             }
         }
 
-        // 2. AI Content Check
-        if (results.ai_generated) {
+        // 2. AI Content Check (Gated by enableAIDetection)
+        if (settings.enableAIDetection && results.ai_generated) {
             if (typeof injectAIBanner === 'function') injectAIBanner();
 
             const confidence = results.ai_confidence ? Math.round(results.ai_confidence * 100) : 0;
@@ -180,7 +290,7 @@ async function loadTabContent(tabName, forceReload = false) {
         // Call backend API via background script to use centralized URL
         const data = await new Promise((resolve, reject) => {
             chrome.runtime.sendMessage({
-                action: 'fetchAPI',
+                type: 'FETCH_API',
                 endpoint: endpoint,
                 method: 'POST',
                 body: {
