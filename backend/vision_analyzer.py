@@ -184,8 +184,8 @@ class VisionAnalyzer:
             # Cleanup temp directory
             try:
                 shutil.rmtree(temp_dir)
-            except:
-                pass
+            except OSError as cleanup_err:
+                logger.warning(f"Failed to clean up temp dir {temp_dir}: {cleanup_err}")
     
     async def _analyze_frame(self, frame_data: dict, frame_num: int) -> dict:
         """Analyze a single frame using GPT-4 Vision"""
