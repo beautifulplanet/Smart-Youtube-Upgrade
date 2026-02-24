@@ -1,0 +1,74 @@
+{
+  "category": "pop_culture_subversion",
+  "display_name": "Pop-Culture Subversion & RAC Pipeline",
+  "description": "Content that uses pop-culture reviews (e.g., Conan the Barbarian) or DIY 'street music' (RAC) as a benign wrapper to funnel users into National Socialism, Aryan Survivalism, and anti-system guerrilla warfare. This vector exploits irony, ridicule, and 'resistance identity'.",
+  "severity": "high",
+  "tags": ["extremism", "radicalization", "pop_culture", "rac", "national_socialism", "white_supremacy", "guerrilla_warfare"],
+
+  "title_patterns": [
+    "conan.*allegory",
+    "conan.*truth",
+    "rac.*music",
+    "rock.*against.*communism",
+    "street.*music.*resistance",
+    "day.*of.*the.*rope",
+    "leaderless.*resistance"
+  ],
+
+  "description_patterns": [
+    "national socialism",
+    "aryan strength",
+    "war plan",
+    "nationalist white man",
+    "jewish archetype",
+    "axis ally",
+    "anti-system guerrilla warfare",
+    "ukonvasama",
+    "codreanu",
+    "primo de rivera",
+    "hans-ulrich rudel",
+    "bob matthews"
+  ],
+
+  "co_occurrence_signals": {
+    "note": "Severity increases when pop-culture/music keywords co-occur with supremacist or guerrilla warfare rhetoric.",
+    "wrapper_terms": ["conan the barbarian", "thulsa doom", "valeria", "subotai", "rac", "rock against communism", "street music", "diy aesthetic"],
+    "payload_terms": ["national socialism", "aryan strength", "war plan", "nationalist white man", "communism", "jewish archetype", "axis ally", "day of the rope", "anti-system guerrilla warfare", "leaderless resistance", "codreanu", "primo de rivera", "hans-ulrich rudel", "bob matthews"],
+    "evasion_tactics": ["irony", "ridicule", "nationalist trolling", "culture jamming", "print-format zines", "ukonvasama"]
+  },
+
+  "language_evasion_flag": {
+    "enabled": true,
+    "note": "Threat actors frequently translate these concepts into Russian or Ukrainian to bypass English-centric political extremism filters while maintaining the same structural payloads.",
+    "severity_modifier": "escalate_to_review"
+  },
+
+  "channel_signals": {
+    "note": "These are content-pattern signals, not targeting any specific group",
+    "pivot_from_pop_culture_to_politics": true,
+    "promotion_of_leaderless_resistance": true,
+    "use_of_irony_and_ridicule": true
+  },
+
+  "safe_harbor": [
+    "Genuine reviews of Conan the Barbarian without political or supremacist framing",
+    "Academic or educational discussion of RAC as a historical music movement",
+    "Debunking videos"
+  ],
+
+  "debunk_searches": [
+    "how extremists use pop culture for recruitment",
+    "far right music recruitment explained",
+    "online radicalization pipeline documentary",
+    "extremism recruitment tactics debunked"
+  ],
+
+  "references": [
+    "YouTube Community Guidelines — Hate Speech Policy",
+    "YouTube Community Guidelines — Harassment and Cyberbullying Policy",
+    "YouTube Community Guidelines — Violent Extremist Organizations Policy"
+  ],
+
+  "version": "1.0.0",
+  "last_updated": "2026-02-22"
+}

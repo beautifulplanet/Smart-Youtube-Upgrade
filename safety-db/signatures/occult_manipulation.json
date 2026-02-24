@@ -1,0 +1,93 @@
+{
+  "category": "occult_manipulation",
+  "display_name": "Occult/Spiritual Manipulation Content",
+  "description": "Content that uses spiritual, astrological, or occult framing to normalize psychological manipulation, abuse behaviors, or self-harm ideation. This category targets content that may evade standard safety filters by embedding harmful messaging within entertainment-genre spiritual content.",
+  "severity": "high",
+  "tags": ["manipulation", "spiritual", "occult", "astrology", "tarot", "psychological_abuse", "self_harm_adjacent"],
+
+  "title_patterns": [
+    "revenge.*zodiac",
+    "zodiac.*revenge",
+    "zodiac.*enemy",
+    "zodiac.*destroy",
+    "zodiac.*manipulate",
+    "tarot.*revenge",
+    "how.*sign.*punish",
+    "how.*sign.*hurt",
+    "how.*sign.*destroy",
+    "sign.*dangerous",
+    "most.*evil.*zodiac",
+    "zodiac.*demon",
+    "spiritual.*enemy",
+    "who.*to.*avoid",
+    "(aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces).*(revenge|destroy|enemy|punish|hurt|manipulate|dangerous|toxic|demon|evil)",
+    "(revenge|destroy|enemy|punish|hurt|manipulate|dangerous|toxic|demon|evil).*(aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces)",
+    "(♈|♉|♊|♋|♌|♍|♎|♏|♐|♑|♒|♓).*(revenge|destroy|enemy|punish|hurt|manipulate)",
+    "tarot.*(destroy|enemy|punish|hurt|manipulate|curse|hex)",
+    "horoscope.*(revenge|destroy|enemy|punish|hurt|manipulate)"
+  ],
+
+  "description_patterns": [
+    "psychological manipulation",
+    "drive.*to.*breakdown",
+    "make.*suffer",
+    "destroy.*mentally",
+    "enemy.*without.*knowing",
+    "victim.*not.*realize",
+    "demon.*helps",
+    "occult.*revenge",
+    "revenge.*without.*suspicion"
+  ],
+
+  "co_occurrence_signals": {
+    "note": "Severity increases when spiritual/occult genre framing co-occurs with manipulation or self-harm adjacent language",
+    "genre_terms": ["zodiac", "tarot", "astrology", "horoscope", "mercury", "jupiter", "virgo", "scorpio", "gemini", "spiritual", "mystic", "oracle"],
+    "harm_terms": ["revenge", "destroy", "manipulate", "gaslight", "enemy", "suffer", "punish", "dominant", "dangerous", "toxic", "break", "hurt"]
+  },
+
+  "non_latin_script_flag": {
+    "enabled": true,
+    "note": "Non-Latin script in title or description combined with co-occurrence signals increases severity. This is a content-pattern signal, not an origin-based filter.",
+    "severity_modifier": "escalate_to_review"
+  },
+
+  "channel_signals": {
+    "note": "These are content-pattern signals, not targeting any specific group",
+    "high_volume_spiritual_shorts": true,
+    "no_about_page_info": true,
+    "rapidly_created_content": true,
+    "known_bad_channels": [
+      "Sacred Taro UA",
+      "АстроГид",
+      "Jay School",
+      "Viktor Ferman. Астрология. Гороскопы.",
+      "Секреты Нумерологии",
+      "AstroSiesha"
+    ],
+    "known_bad_hashtags": [
+      "#знакзодиакавесы",
+      "#знакзодиакаскорпион"
+    ]
+  },
+
+  "safe_harbor": [
+    "Academic or educational discussion of astrology as a cultural phenomenon",
+    "Satirical content clearly labeled as such",
+    "Personal opinion/experience content without prescriptive manipulation instructions"
+  ],
+
+  "debunk_searches": [
+    "why astrology is not real science debunked",
+    "zodiac manipulation psychology explained",
+    "astrology debunked critical thinking",
+    "tarot scams exposed psychology behind belief"
+  ],
+
+  "references": [
+    "YouTube Community Guidelines — Suicide and Self-Harm Policy",
+    "YouTube Community Guidelines — Harassment and Cyberbullying Policy"
+  ],
+
+  "version": "1.0.0",
+  "last_updated": "2026-02-22"
+}

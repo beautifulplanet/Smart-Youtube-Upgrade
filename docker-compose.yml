@@ -8,6 +8,9 @@ services:
     environment:
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AI_PROVIDER=${AI_PROVIDER:-auto}
+      - API_SECRET_KEY=${API_SECRET_KEY:-}
       - ALLOWED_EXTENSION_IDS=${ALLOWED_EXTENSION_IDS:-}
     env_file:
       - .env

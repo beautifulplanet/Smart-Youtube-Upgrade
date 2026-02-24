@@ -82,5 +82,29 @@
     "emoji": "🤖",
     "description": "AI-generated, deepfake, or synthetic media detection",
     "keywords": ["ai", "deepfake", "generated", "synthetic", "fake", "midjourney", "dall-e", "chatgpt", "sora"]
+  },
+  "occult_manipulation": {
+    "name": "Occult/Spiritual Manipulation",
+    "emoji": "🔮",
+    "description": "Spiritual, astrological, or occult framing used to normalize psychological manipulation, abuse, or self-harm ideation",
+    "keywords": ["zodiac", "tarot", "astrology", "revenge", "manipulation", "occult", "spiritual", "demon", "horoscope"]
+  },
+  "spiritual_wellness_extremism": {
+    "name": "Spiritual & Wellness Extremism",
+    "emoji": "🧿",
+    "description": "Spiritualism or alternative health used as a pipeline to antisemitism, supremacism, or anti-institutional extremism",
+    "keywords": ["pineal gland", "third eye", "awakening", "primal diet", "new world order", "zionist", "mind control"]
+  },
+  "pseudohistorical_extremism": {
+    "name": "Pseudohistorical Extremism",
+    "emoji": "📜",
+    "description": "Alternative history or architectural conspiracies funneling users toward white supremacy or sovereign citizen ideologies",
+    "keywords": ["tartaria", "mud flood", "hidden history", "hyperborea", "fashwave", "great reset", "cabal"]
+  },
+  "pop_culture_subversion": {
+    "name": "Pop-Culture Subversion",
+    "emoji": "🎭",
+    "description": "Pop-culture reviews or music used to funnel users into extremist ideologies",
+    "keywords": ["conan", "rac", "rock against communism", "leaderless resistance", "day of the rope", "national socialism"]
   }
 }

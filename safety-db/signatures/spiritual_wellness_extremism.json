@@ -1,0 +1,72 @@
+{
+  "category": "spiritual_wellness_extremism",
+  "display_name": "Spiritual & Wellness Extremism Pipeline",
+  "description": "Content that uses spiritualism, metaphysics, or alternative health (e.g., Primal Diet, Pineal Gland activation) as a benign wrapper to funnel users into antisemitic conspiracies, white supremacy, or anti-institutional extremism. This vector exploits somatic trauma and 'awakening' narratives.",
+  "severity": "high",
+  "tags": ["extremism", "radicalization", "spiritualism", "wellness", "antisemitism", "white_supremacy", "health_conspiracy"],
+
+  "title_patterns": [
+    "pineal.*gland.*activation",
+    "third.*eye.*truth",
+    "dna.*unlocking",
+    "astral.*travel.*deception",
+    "primal.*diet.*truth",
+    "toxin.*removal.*purity",
+    "limited.*hangout",
+    "fake.*awakening"
+  ],
+
+  "description_patterns": [
+    "zionist new world order",
+    "zionist puppets",
+    "jewish tactic",
+    "mind control",
+    "genocide of the white race",
+    "(((agents)))",
+    "(((them)))",
+    "goyim",
+    "bodily anxiety",
+    "millions of tiny spiders"
+  ],
+
+  "co_occurrence_signals": {
+    "note": "Severity increases when spiritual/wellness keywords co-occur with antisemitic or supremacist rhetoric.",
+    "wrapper_terms": ["oprah", "david icke", "jack kornfield", "ram dass", "dalai lama", "eckhart tolle", "pineal gland", "third eye", "non-duality", "astral travel", "dna unlocking", "primal diet", "aajonus vonderplanitz", "bodily purity", "anti-toxin", "vaccines", "chemtrails", "fluoride"],
+    "payload_terms": ["limited hangout", "zionist", "new world order", "puppets", "genetic disconnects", "jewish tactic", "mind control", "genocide", "white race", "(((", ")))", "goyim", "goy"],
+    "psychological_triggers": ["bodily anxiety", "racing heart", "shallow breathing", "millions of tiny spiders", "awakening trap"]
+  },
+
+  "language_evasion_flag": {
+    "enabled": true,
+    "note": "Threat actors frequently translate these concepts into Russian or Ukrainian to bypass English-centric political extremism filters while maintaining the same structural payloads.",
+    "severity_modifier": "escalate_to_review"
+  },
+
+  "channel_signals": {
+    "note": "These are content-pattern signals, not targeting any specific group",
+    "pivot_from_wellness_to_politics": true,
+    "exploitation_of_somatic_trauma": true
+  },
+
+  "safe_harbor": [
+    "Genuine discussions of meditation, yoga, or alternative diets without conspiracy framing",
+    "Academic or educational discussion of these conspiracy theories as an internet phenomenon",
+    "Debunking videos"
+  ],
+
+  "debunk_searches": [
+    "wellness to conspiracy pipeline explained",
+    "pineal gland pseudoscience debunked",
+    "how wellness influencers spread extremism",
+    "conspiracy theory radicalization documentary"
+  ],
+
+  "references": [
+    "YouTube Community Guidelines — Hate Speech Policy",
+    "YouTube Community Guidelines — Harassment and Cyberbullying Policy",
+    "YouTube Community Guidelines — Misinformation Policy"
+  ],
+
+  "version": "1.0.0",
+  "last_updated": "2026-02-22"
+}

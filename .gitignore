@@ -28,6 +28,9 @@ Thumbs.db
 # Testing/Coverage
 .pytest_cache/
 .coverage
+
+# Private dev notes (never upload)
+_DEV_NOTES/
 htmlcov/
 
 # Secrets (never commit API keys)
@@ -37,7 +40,14 @@ credentials.json
 # Personal reference (NEVER push)
 CHEAT_SHEET_DO_NOT_PUSH.md
 
-# Claude temp files
+# Vulnerability report (NEVER push — submitted to Google Bug Hunters)
+youtube-safety-report/
+**/youtube-safety-report/
+*.env
+language_evasion_evidence.json
+
+# Claude / Copilot agent workspace
+.agent/
 tmpclaude-*
 
 # Test output artifacts

@@ -1,0 +1,87 @@
+{
+  "category": "pseudohistorical_extremism",
+  "display_name": "Pseudohistorical Extremism / Radicalization Pipeline",
+  "description": "Content that uses alternative history, architectural conspiracies (e.g., Tartaria, Mud Flood), or 'hidden past' narratives as a Trojan horse to funnel users toward white supremacy, anti-institutional extremism, antisemitism, or sovereign citizen ideologies. This category targets content that evades political extremism filters by masquerading as educational or historical analysis.",
+  "severity": "high",
+  "tags": ["extremism", "radicalization", "conspiracy", "pseudohistory", "tartaria", "mud_flood", "supremacist", "anti_institutional"],
+
+  "title_patterns": [
+    "tartaria.*truth",
+    "mud.*flood",
+    "hidden.*history",
+    "stolen.*past",
+    "fake.*timeline",
+    "great.*reset.*18",
+    "world.*fair.*lie",
+    "they.*hid.*this",
+    "true.*history.*erased",
+    "architecture.*lie",
+    "hyperborea",
+    "lost.*empire"
+  ],
+
+  "description_patterns": [
+    "new world order",
+    "cabal",
+    "global elites",
+    "aesthetic moralism",
+    "modern degeneracy",
+    "degenerate art",
+    "true past",
+    "reclaim.*heritage",
+    "parasites.*destroyed",
+    "reset.*humanity"
+  ],
+
+  "co_occurrence_signals": {
+    "note": "Severity increases when architectural/historical keywords co-occur with supremacist, anti-institutional, or 'cabal' rhetoric.",
+    "architectural_terms": ["tartaria", "mud flood", "world's fair", "singer building", "penn station", "classical architecture", "antiquitech", "star fort", "melted buildings", "chestahedrons", "sacred geometry"],
+    "supremacist_terms": ["hyperborea", "fashwave", "degeneracy", "pure", "heritage", "aryan", "traditionalist", "vril energy", "race preservation"],
+    "cabal_terms": ["great reset", "new world order", "cabal", "elites", "parasites", "hidden truth", "fake history", "matrix", "(((them)))", "zionist"]
+  },
+
+  "language_evasion_flag": {
+    "enabled": true,
+    "note": "Threat actors frequently translate these concepts into Russian or Ukrainian to bypass English-centric political extremism filters while maintaining the same visual and structural payloads.",
+    "severity_modifier": "escalate_to_review"
+  },
+
+  "visual_signals": {
+    "note": "These are common visual motifs used in the 'normiefication' of this content.",
+    "motifs": [
+      "fashwave aesthetics",
+      "side-by-side comparisons of classical vs brutalist architecture",
+      "sepia-toned photos of 19th-century cities with 'empty streets'",
+      "highlighting basement windows as 'proof' of mud flood"
+    ]
+  },
+
+  "channel_signals": {
+    "note": "These are content-pattern signals, not targeting any specific group",
+    "high_volume_historical_shorts": true,
+    "pivot_from_history_to_politics": true,
+    "cross_pollination_with_qanon": true
+  },
+
+  "safe_harbor": [
+    "Academic or educational discussion of the Tartaria conspiracy theory as an internet phenomenon",
+    "Genuine architectural history channels discussing the demolition of Penn Station or the Singer Building without conspiracy framing",
+    "Debunking videos"
+  ],
+
+  "debunk_searches": [
+    "tartaria conspiracy theory debunked",
+    "mud flood conspiracy explained debunked",
+    "pseudohistory to extremism pipeline explained",
+    "real history vs conspiracy theories critical thinking"
+  ],
+
+  "references": [
+    "YouTube Community Guidelines — Hate Speech Policy",
+    "YouTube Community Guidelines — Harassment and Cyberbullying Policy",
+    "YouTube Community Guidelines — Misinformation Policy"
+  ],
+
+  "version": "1.0.0",
+  "last_updated": "2026-02-22"
+}
