@@ -1,6 +1,6 @@
 # YouTube Safety Inspector 🛡️
 
-![Backend Tests](https://img.shields.io/badge/backend_tests-260_passed-brightgreen)
+![Backend Tests](https://img.shields.io/badge/backend_tests-297_passed-brightgreen)
 ![Frontend Tests](https://img.shields.io/badge/frontend_tests-73_passed-brightgreen)
 ![Version](https://img.shields.io/badge/version-3.0.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -10,7 +10,7 @@
 <!-- Screenshot placeholder: Replace with actual screenshot -->
 <!-- ![YouTube Safety Inspector](docs/images/screenshot.png) -->
 
-> *333 tests (260 backend + 73 frontend). 10 safety categories. 11 signature files. Cross-browser. Docker-ready. Security-hardened with rate limiting, XSS prevention, and CSP compliance.*
+> *370 tests (297 backend + 73 frontend). 18 safety categories. 15 signature files. Cross-browser. Docker-ready. Security-hardened with rate limiting, XSS prevention, and CSP compliance.*
 
 ---
 
@@ -34,7 +34,7 @@ This document serves **four audiences**. Jump to what you need:
 ### What
 
 A YouTube content safety system that combines:
-- **Pattern-matching analysis engine** — antivirus-style signature database with 25+ danger patterns across 10 categories
+- **Pattern-matching analysis engine** — antivirus-style signature database with 150 danger patterns across 18 categories
 - **Multi-signal detection** — transcript extraction, comment sentiment analysis, metadata heuristics, hashtag/title AI detection
 - **Computer vision (optional)** — GPT-4 Vision frame analysis via yt-dlp + ffmpeg pipeline
 - **Safe alternative discovery** — finds real, educational, and tutorial replacements from trusted channels
@@ -46,7 +46,7 @@ A YouTube content safety system that combines:
 | Talking Point | Detail |
 |---|---|
 | Full-stack ownership | Python backend (FastAPI + analysis engine) + browser extension (Chrome MV3 + content scripts) + DevOps (Docker, CI) |
-| Security hardening | Rate limiting, CSP compliance, XSS prevention, input validation, security headers — 333 tests including 11 security regression tests |
+| Security hardening | Rate limiting, CSP compliance, XSS prevention, input validation, security headers — 370 tests including 11 security regression tests |
 | Scaling analysis | 14 identified bottlenecks documented with migration paths from 100 → 1B users ([SCALING.md](SCALING.md)) |
 | API design | RESTful with Pydantic validation, quota tracking, structured error responses, health checks |
 | Content analysis engine | Signature matching (antivirus-style), weighted scoring, multi-source fusion (transcript + comments + metadata) |
@@ -57,13 +57,13 @@ A YouTube content safety system that combines:
 
 | Metric | Value |
 |---|---|
-| Backend source | 7 modules, ~4,300 lines Python |
-| Extension source | 10 content scripts + popup + background, ~6,400 lines JS/CSS/HTML |
-| Safety categories | 10 (Fitness, DIY, Cooking, Electrical, Medical, Chemical, Driving, OSHA, Physical Therapy, AI Content) |
-| Danger signatures | 25+ patterns across 11 JSON signature files |
-| Test count | 333 tests — 260 backend (pytest) + 73 frontend (Vitest) |
-| API endpoints | 6 (analyze, report, ai-tutorials, ai-entertainment, real-alternatives, health) |
-| Security headers | 5 (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Content-Type) |
+| Backend source | 7 modules, ~4,285 lines Python |
+| Extension source | 7 content scripts + popup + background, ~5,500 lines JS/CSS/HTML |
+| Safety categories | 18 (Fitness, DIY, Cooking, Electrical, Medical, Chemical, Automotive, Childcare, Outdoor, Financial, OSHA, Driving/DMV, Physical Therapy, AI Content, Occult, Spiritual Wellness, Pseudohistorical, Pop Culture) |
+| Danger signatures | 150 patterns across 15 JSON signature files |
+| Test count | 370 tests — 297 backend (pytest) + 73 frontend (Vitest) |
+| API endpoints | 8 (analyze, report, ai-tutorials, ai-entertainment, real-alternatives, health, signatures, categories) |
+| Security headers | 4 (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy) |
 
 ---
 
@@ -155,7 +155,7 @@ Transcript  Comments   Metadata      Vision (opt.)
                ▼                           │
     Signature Matching                     │
     (regex patterns ×                      │
-     10 categories)                        │
+     18 categories)                        │
                │                           │
                ▼                           │
     Score Calculation ◄────────────────────┘
@@ -294,7 +294,7 @@ python -m pytest tests/ --cov           # With coverage report
 
 ## A. Safety Analysis Engine
 
-The core analysis engine (`analyzer.py`, 694 lines) works like an antivirus scanner for video content.
+The core analysis engine (`analyzer.py`, 1,172 lines) works like an antivirus scanner for video content.
 
 ### How It Works
 
@@ -343,7 +343,7 @@ If configured with OpenAI API key + yt-dlp + ffmpeg:
 
 ## B. Safety Categories & Signatures
 
-10 categories, each with its own signature file:
+18 categories, each with its own signature file:
 
 | Category | Emoji | Examples | Signature File |
 |---|---|---|---|
@@ -353,12 +353,19 @@ If configured with OpenAI API key + yt-dlp + ffmpeg:
 | Electrical | ⚡ | Improper wiring, fire hazards, live work | `electrical.json` |
 | Medical | 💊 | Unverified health claims, self-diagnosis | `medical.json` |
 | Chemical | 🧪 | Dangerous mixing, toxic exposure | `chemical.json` |
-| Driving | 🚗 | Aggressive driving instruction, stunts | `driving.json` |
-| OSHA | 🧰 | Missing PPE, unsafe work procedures | `osha.json` |
+| Driving/DMV | 🚗 | Aggressive driving instruction, stunts | `driving_dmv.json` |
+| OSHA Workplace | 🧰 | Missing PPE, unsafe work procedures | `osha_workplace.json` |
 | Physical Therapy | 🧑‍⚕️ | Non-professional rehab advice | `physical_therapy.json` |
 | AI Content | 🤖 | AI-generated/synthetic media indicators | `ai_content.json` |
+| Childcare | 👶 | Unsafe childcare practices, unsupervised hazards | `childcare.json` |
+| Occult Manipulation | 🔮 | Cult recruitment, spiritual coercion | `occult_manipulation.json` |
+| Spiritual Wellness | 🧘 | Pseudoscience wellness, anti-medicine rhetoric | `spiritual_wellness_extremism.json` |
+| Pseudohistorical | 📜 | Revisionist history, conspiracy-driven narratives | `pseudohistorical_extremism.json` |
+| Pop Culture Subversion | 🎭 | Extremist messaging hidden in entertainment | `pop_culture_subversion.json` |
 
 **Adding new signatures:** Drop a JSON file in `safety-db/signatures/` following the schema. No code changes needed — the database loads all files at startup.
+
+> **Note:** The `categories.json` file defines 18 categories. Not all have dedicated signature files yet — 3 categories (automotive, outdoor, financial) are defined but awaiting signature patterns.
 
 ---
 
@@ -407,14 +414,13 @@ utils.js → overlay.js → analysis.js → content.js
 
 | Script | Lines | Purpose |
 |---|---|---|
-| `utils.js` | 185 | Video ID extraction, ad detection, title/channel scraping, `escapeHtml()` |
-| `overlay.js` | 387 | Safety warning overlay, AI content banner, alternative video cards |
-| `analysis.js` | 235 | Video analysis orchestration, API communication |
-| `content.js` | 160 | Entry point, SPA navigation handling (`yt-navigate-finish`), initialization |
-| `panel.js` | 680 | Panel state model, rendering, queue management for the 4-panel system |
-| `modes.js` | 350 | Mode handlers (Data, Random, Subject, Learn) |
-| `sidebar.js` | 700 | Shadow DOM sidebar, layout adjustment, presets, events |
-| `player.js` | 200 | Individual panel playback control |
+| `utils.js` | 149 | Video ID extraction, ad detection, title/channel scraping, `escapeHtml()` |
+| `overlay.js` | 362 | Safety warning overlay, AI content banner, alternative video cards |
+| `analysis.js` | 310 | Video analysis orchestration, API communication |
+| `content.js` | 206 | Entry point, SPA navigation handling (`yt-navigate-finish`), initialization |
+| `modes.js` | 328 | Mode handlers (Data, Random, Subject, Learn) |
+| `sidebar.js` | 559 | Shadow DOM sidebar, layout adjustment, presets, events |
+| `bridge.js` | 599 | MAIN world script injection, YouTube player API access |
 
 ### Service Worker (`background.js`)
 
@@ -574,7 +580,7 @@ Return the loaded signature database and category definitions.
 
 ```
 Layer 1: Input Validation        → Video ID regex (^[a-zA-Z0-9_-]{11}$), Pydantic field limits
-Layer 2: Security Headers        → X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
+Layer 2: Security Headers        → X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy
 Layer 3: Rate Limiting           → Per-IP, per-endpoint sliding window
 Layer 4: XSS Prevention          → escapeHtml() on all dynamic content, severity whitelisting
 Layer 5: CSP Compliance          → No inline onclick/onerror, delegated event handlers
@@ -611,7 +617,7 @@ Layer 9: Settings Import         → Schema validation with type checking and en
 | ~~V2-2.3 Import schema validation~~ | ✅ Done | S2 |
 | ~~V2-2.4 rel=noopener~~ | ✅ Done | S2 |
 | V2-3.x Service worker caching | 🔲 Planned | S3 |
-| V2-4.x Dead code cleanup | 🔲 Planned | S3 |
+| V2-4.x Dead code cleanup | ✅ Done | S3 |
 
 See [SECURITY.md](SECURITY.md) for full vulnerability reporting instructions.
 
@@ -661,7 +667,7 @@ The system has **14 documented bottlenecks** with migration paths. Full analysis
 ```bash
 # Run all backend tests
 cd backend
-python -m pytest tests/ -v             # 260 tests, ~13s
+python -m pytest tests/ -v             # 297 tests, ~15s
 
 # With coverage
 python -m pytest tests/ --cov          # Coverage report
@@ -675,13 +681,14 @@ python -m pytest tests/ --cov          # Coverage report
 | YouTube Data | `test_youtube_data.py` | 15 | Context managers, metadata parsing, comment analysis, error handling |
 | Security (S1) | `test_security_s1.py` | 11 | XSS prevention, video ID validation, rate limiter cleanup |
 | AI Reviewer | `test_ai_reviewer.py` | 61 | Heuristic debunking, AI provider init, content review, keyword coverage |
+| Alternatives | `test_alternatives_finder.py` | 37 | Animal detection, search building, singleton, disabled/enabled paths |
 | Edge Cases | `test_edge_cases.py` | 141 | Boundary conditions, malformed input, regression tests |
 
 ### What's Tested
 
 | Layer | Coverage |
 |---|---|
-| API endpoint responses | ✅ All 6 endpoints |
+| API endpoint responses | ✅ All 8 endpoints |
 | Input validation (SQL injection, XSS, overflow) | ✅ 5 attack vectors |
 | Security headers on every response | ✅ Verified |
 | Rate limiter logic (window, cleanup, edge cases) | ✅ 2 focused tests |
@@ -696,7 +703,7 @@ python -m pytest tests/ --cov          # Coverage report
 |---|---|---|
 | Vision analyzer | Requires yt-dlp + ffmpeg + OpenAI API | Excluded from coverage |
 | E2E browser tests | No Playwright/Puppeteer setup | Planned |
-| Current coverage | Improving — 260 backend + 73 frontend tests | Expanding incrementally |
+| Current coverage | Improving — 297 backend + 73 frontend tests | Expanding incrementally |
 
 ---
 
@@ -714,10 +721,9 @@ youtube-safety-inspector/
 │   │   ├── content.js           # Entry point, SPA navigation
 │   │   ├── analysis.js          # Video analysis orchestration
 │   │   ├── overlay.js           # Safety overlays + AI banner
-│   │   ├── sidebar.js           # Shadow DOM sidebar (700 lines)
-│   │   ├── panel.js             # 4-panel state model (680 lines)
+│   │   ├── sidebar.js           # Shadow DOM sidebar (559 lines)
+│   │   ├── bridge.js            # MAIN world injection (599 lines)
 │   │   ├── modes.js             # Data/Random/Subject/Learn modes
-│   │   ├── player.js            # Panel playback control
 │   │   ├── utils.js             # Shared utilities, escapeHtml
 │   │   ├── content.css          # Content script styles
 │   │   └── sidebar.css          # Sidebar-specific styles
@@ -734,7 +740,7 @@ youtube-safety-inspector/
 │
 ├── backend/                     # Python FastAPI server
 │   ├── main.py                  # API endpoints + middleware (753 lines)
-│   ├── analyzer.py              # Safety analysis engine (1,174 lines)
+│   ├── analyzer.py              # Safety analysis engine (1,172 lines)
 │   ├── ai_reviewer.py           # AI contextual reviewer + debunking (684 lines)
 │   ├── alternatives_finder.py   # Safe video discovery (574 lines)
 │   ├── safety_db.py             # Signature database loader (500 lines)
@@ -742,10 +748,11 @@ youtube-safety-inspector/
 │   ├── vision_analyzer.py       # GPT-4 Vision frame analysis (294 lines)
 │   ├── requirements.txt         # Pinned dependencies
 │   ├── pyproject.toml           # Project config + test settings
-│   └── tests/                   # pytest suite (260 tests)
+│   └── tests/                   # pytest suite (297 tests)
 │       ├── conftest.py          # Fixtures
 │       ├── test_analyzer.py     # Analyzer unit tests
 │       ├── test_ai_reviewer.py  # AI reviewer unit tests (61 tests)
+│       ├── test_alternatives_finder.py # Alternatives finder tests (37 tests)
 │       ├── test_edge_cases.py   # Boundary & regression tests (141 tests)
 │       ├── test_integration.py  # API endpoint tests
 │       ├── test_safety_db.py    # Database tests
@@ -753,16 +760,16 @@ youtube-safety-inspector/
 │       └── test_security_s1.py  # Security regression tests
 │
 ├── safety-db/                   # Danger signature database
-│   ├── categories.json          # Category definitions (10 categories)
-│   └── signatures/              # Per-category pattern files (11 files)
+│   ├── categories.json          # Category definitions (18 categories)
+│   └── signatures/              # Per-category pattern files (15 files)
 │       ├── fitness.json
 │       ├── diy.json
 │       ├── cooking.json
 │       ├── electrical.json
 │       ├── medical.json
 │       ├── chemical.json
-│       ├── driving.json
-│       ├── osha.json
+│       ├── driving_dmv.json
+│       ├── osha_workplace.json
 │       ├── physical_therapy.json
 │       ├── ai_content.json
 │       └── ...
@@ -796,7 +803,10 @@ youtube-safety-inspector/
 | Variable | Required | Purpose |
 |---|---|---|
 | `YOUTUBE_API_KEY` | Recommended | YouTube Data API for comments, search, metadata |
-| `OPENAI_API_KEY` | Optional | GPT-4 Vision frame analysis |
+| `OPENAI_API_KEY` | Optional | GPT-4 Vision frame analysis + AI context review |
+| `ANTHROPIC_API_KEY` | Optional | Alternative AI provider for context review |
+| `AI_PROVIDER` | Optional | Force provider: `auto`, `openai`, `anthropic`, or `heuristic` |
+| `API_SECRET_KEY` | Optional | Enable API authentication (Bearer token) |
 | `ALLOWED_EXTENSION_IDS` | Optional | CORS whitelist for specific extension IDs |
 
 ### System Dependencies (Optional)
@@ -855,7 +865,7 @@ With API keys enabled, you additionally get:
 
 | Version | Date | Changes |
 |---|---|---|
-| v3.0.1 | Feb 2026 | AI contextual reviewer (684 lines), debunking detection, 260-test pytest suite, 73 Vitest frontend tests, CWS compliance fixes |
+| v3.0.1 | Feb 2026 | AI contextual reviewer (684 lines), debunking detection, 297-test pytest suite, 73 Vitest frontend tests, CWS compliance fixes |
 | v3.0.0 | Feb 2026 | Multi-screen sidebar, 4-panel grid, 5 presets, cross-browser build, YouTube-native UI |
 | v2.1.0 | Feb 13, 2026 | Security hardening (8 fixes), 58-test pytest suite, accessibility, keyboard shortcuts |
 | v2.0.0 | Jan 2026 | Settings panel, 15+ options, trusted channels, export/import |
@@ -879,4 +889,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-*Built with Python, FastAPI, and Chrome Manifest V3. 333 tests. 10 safety categories. 14 documented scaling bottlenecks. Zero inline scripts.*
+*Built with Python, FastAPI, and Chrome Manifest V3. 370 tests. 18 safety categories. 14 documented scaling bottlenecks. Zero inline scripts.*
