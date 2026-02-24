@@ -214,6 +214,29 @@
   color: var(--text-muted);
 }
 
+.ysi-wiki-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+}
+
+.ysi-wiki-link:hover {
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+}
+
 /* ═══════════════════════════════════════════════
    ALERT State — Score Ring
    ═══════════════════════════════════════════════ */

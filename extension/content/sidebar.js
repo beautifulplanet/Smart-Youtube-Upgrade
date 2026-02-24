@@ -128,8 +128,8 @@ function buildSidebarHTML() {
     <div class="ysi-state ysi-state-ad" id="ysi-ad">
       <div class="ysi-chill-badge">
         <div class="ysi-chill-icon">📺</div>
-        <div class="ysi-chill-text">Ad Playing</div>
-        <div class="ysi-chill-sub">Analysis paused during advertisement</div>
+        <div class="ysi-chill-text">Enjoy the Ad!</div>
+        <div class="ysi-chill-sub">We only analyze the actual video — not ads.<br>Analysis will start automatically when it ends.</div>
       </div>
     </div>
 
@@ -139,6 +139,9 @@ function buildSidebarHTML() {
         <div class="ysi-chill-icon">✅</div>
         <div class="ysi-chill-text">Looks Good</div>
         <div class="ysi-chill-sub">No safety issues detected</div>
+        <a class="ysi-wiki-link" id="ysi-wiki-link" href="#" target="_blank" rel="noopener noreferrer">
+          📖 Learn more on Wikipedia
+        </a>
       </div>
       <div class="ysi-section-label">
         <span>Related Videos</span>
@@ -299,9 +302,50 @@ function updateSidebarWithResults(results, settings = {}) {
     }
   } else {
     setSidebarMode('chill');
+    populateWikiLink();
   }
 
   loadThumbnailGrid(results);
+}
+
+/**
+ * Populate the Wikipedia link in the chill state.
+ * Builds a Wikipedia search URL from the video title,
+ * stripping common YouTube noise (episode numbers, "Official Video", etc.)
+ */
+function populateWikiLink() {
+  const shadow = SIDEBAR_STATE.shadowRoot;
+  if (!shadow) return;
+
+  const link = shadow.getElementById('ysi-wiki-link');
+  if (!link) return;
+
+  const rawTitle = typeof getVideoTitle === 'function' ? getVideoTitle() : '';
+  if (!rawTitle) {
+    link.style.display = 'none';
+    return;
+  }
+
+  // Strip common YouTube title noise for a cleaner Wikipedia search
+  const cleaned = rawTitle
+    .replace(/\s*[\|\-–—]\s*(official\s*(video|audio|music\s*video|lyric\s*video)|lyric\s*video|full\s*episode|hd|hq|4k|remastered|lyrics?)\s*/gi, '')
+    .replace(/\(official\s*(video|audio|music\s*video|lyric\s*video)\)/gi, '')
+    .replace(/\[official\s*(video|audio|music\s*video|lyric\s*video)\]/gi, '')
+    .replace(/\s*\(?(ep\.?\s*\d+|episode\s*\d+|s\d+\s*e\d+|season\s*\d+)\)?\s*/gi, '')
+    .replace(/\s*#\w+/g, '')        // hashtags
+    .replace(/\s*\|\s*[^|]*$/g, '') // trailing pipe segments (channel names)
+    .replace(/\s{2,}/g, ' ')        // collapse whitespace
+    .trim();
+
+  if (!cleaned) {
+    link.style.display = 'none';
+    return;
+  }
+
+  const wikiUrl = `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(cleaned)}`;
+  link.href = wikiUrl;
+  link.title = `Search Wikipedia for "${cleaned}"`;
+  link.style.display = '';
 }
 
 /**
