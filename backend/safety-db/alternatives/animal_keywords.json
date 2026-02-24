@@ -1,0 +1,232 @@
+{
+    "dog": [
+        "dog",
+        "puppy",
+        "canine",
+        "golden retriever",
+        "labrador",
+        "german shepherd",
+        "husky",
+        "poodle",
+        "bulldog",
+        "beagle"
+    ],
+    "cat": [
+        "cat",
+        "kitten",
+        "feline",
+        "tabby",
+        "siamese",
+        "persian",
+        "maine coon"
+    ],
+    "raccoon": [
+        "raccoon",
+        "racoon",
+        "trash panda"
+    ],
+    "fox": [
+        "fox",
+        "foxes",
+        "red fox",
+        "arctic fox",
+        "fennec"
+    ],
+    "bear": [
+        "bear",
+        "grizzly",
+        "polar bear",
+        "brown bear",
+        "black bear",
+        "panda"
+    ],
+    "lion": [
+        "lion",
+        "lioness",
+        "pride",
+        "simba"
+    ],
+    "tiger": [
+        "tiger",
+        "tigers",
+        "bengal tiger",
+        "siberian tiger"
+    ],
+    "elephant": [
+        "elephant",
+        "elephants",
+        "tusker",
+        "jumbo"
+    ],
+    "wolf": [
+        "wolf",
+        "wolves",
+        "wolfpack",
+        "gray wolf"
+    ],
+    "deer": [
+        "deer",
+        "buck",
+        "doe",
+        "fawn",
+        "stag",
+        "elk",
+        "moose"
+    ],
+    "bird": [
+        "bird",
+        "eagle",
+        "hawk",
+        "owl",
+        "parrot",
+        "penguin",
+        "flamingo",
+        "hummingbird"
+    ],
+    "snake": [
+        "snake",
+        "python",
+        "cobra",
+        "viper",
+        "anaconda",
+        "boa"
+    ],
+    "monkey": [
+        "monkey",
+        "chimp",
+        "chimpanzee",
+        "gorilla",
+        "orangutan",
+        "ape",
+        "primate"
+    ],
+    "horse": [
+        "horse",
+        "pony",
+        "stallion",
+        "mare",
+        "foal",
+        "mustang"
+    ],
+    "rabbit": [
+        "rabbit",
+        "bunny",
+        "hare"
+    ],
+    "squirrel": [
+        "squirrel",
+        "chipmunk"
+    ],
+    "shark": [
+        "shark",
+        "great white",
+        "hammerhead",
+        "whale shark"
+    ],
+    "whale": [
+        "whale",
+        "orca",
+        "humpback",
+        "blue whale",
+        "dolphin"
+    ],
+    "crocodile": [
+        "crocodile",
+        "alligator",
+        "croc",
+        "gator"
+    ],
+    "turtle": [
+        "turtle",
+        "tortoise",
+        "sea turtle"
+    ],
+    "frog": [
+        "frog",
+        "toad",
+        "amphibian"
+    ],
+    "spider": [
+        "spider",
+        "tarantula",
+        "arachnid"
+    ],
+    "insect": [
+        "insect",
+        "butterfly",
+        "bee",
+        "ant",
+        "beetle"
+    ],
+    "fish": [
+        "fish",
+        "goldfish",
+        "koi",
+        "tropical fish",
+        "aquarium"
+    ],
+    "cow": [
+        "cow",
+        "cattle",
+        "bull",
+        "calf"
+    ],
+    "pig": [
+        "pig",
+        "piglet",
+        "hog",
+        "boar"
+    ],
+    "chicken": [
+        "chicken",
+        "rooster",
+        "hen",
+        "chick"
+    ],
+    "duck": [
+        "duck",
+        "duckling",
+        "goose",
+        "swan"
+    ],
+    "leopard": [
+        "leopard",
+        "cheetah",
+        "jaguar",
+        "panther"
+    ],
+    "hippo": [
+        "hippo",
+        "hippopotamus"
+    ],
+    "rhino": [
+        "rhino",
+        "rhinoceros"
+    ],
+    "giraffe": [
+        "giraffe"
+    ],
+    "zebra": [
+        "zebra"
+    ],
+    "kangaroo": [
+        "kangaroo",
+        "wallaby",
+        "koala"
+    ],
+    "otter": [
+        "otter",
+        "sea otter"
+    ],
+    "beaver": [
+        "beaver"
+    ],
+    "hedgehog": [
+        "hedgehog"
+    ],
+    "hamster": [
+        "hamster",
+        "gerbil",
+        "guinea pig"
+    ]
+}

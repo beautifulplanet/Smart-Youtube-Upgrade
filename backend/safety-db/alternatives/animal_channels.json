@@ -1,0 +1,46 @@
+{
+    "big": [
+        "BBC Earth",
+        "National Geographic",
+        "Nat Geo WILD",
+        "Discovery",
+        "Animal Planet",
+        "Smithsonian Channel",
+        "PBS Nature"
+    ],
+    "medium": [
+        "The Dodo",
+        "Brave Wilderness",
+        "AntsCanada",
+        "Casual Geographic",
+        "Daily Dose Of Internet",
+        "ViralHog",
+        "Kritter Klub",
+        "Wildlife Aid",
+        "The Pet Collective",
+        "Dodo Kids"
+    ],
+    "educational": [
+        "Clint's Reptiles",
+        "Snake Discovery",
+        "Emzotic",
+        "Taylor Nicole Dean",
+        "Wickens Wicked Reptiles",
+        "JoCat",
+        "TierZoo",
+        "Ze Frank"
+    ],
+    "zoo": [
+        "San Diego Zoo",
+        "Smithsonian's National Zoo",
+        "Cincinnati Zoo",
+        "Australia Zoo",
+        "Big Cat Rescue",
+        "The Elephant Sanctuary"
+    ],
+    "filmmaker": [
+        "Bertie Gregory",
+        "Patrick Dykstra",
+        "Wildlife Photographer"
+    ]
+}

@@ -1,0 +1,259 @@
+{
+    "dog": [
+        {
+            "id": "dog-bbc",
+            "title": "Dogs - BBC Earth Documentary",
+            "channel": "BBC Earth",
+            "thumbnail": "https://i.ytimg.com/vi/3GRSbr0EYYU/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=dogs+bbc+earth+documentary",
+            "badge": "✓ BBC",
+            "is_trusted": true
+        },
+        {
+            "id": "dog-dodo",
+            "title": "Amazing Dog Rescues - The Dodo",
+            "channel": "The Dodo",
+            "thumbnail": "https://i.ytimg.com/vi/bxHFBnfudUo/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=the+dodo+dog+rescue+stories",
+            "badge": "✓ Dodo",
+            "is_trusted": true
+        },
+        {
+            "id": "dog-natgeo",
+            "title": "Dogs - National Geographic",
+            "channel": "National Geographic",
+            "thumbnail": "https://i.ytimg.com/vi/3uKwQDLgjQ0/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=national+geographic+dogs+documentary",
+            "badge": "✓ NatGeo",
+            "is_trusted": true
+        },
+        {
+            "id": "dog-planet",
+            "title": "Dogs 101 - Animal Planet",
+            "channel": "Animal Planet",
+            "thumbnail": "https://i.ytimg.com/vi/qiJaeQ8r5IY/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=dogs+101+animal+planet",
+            "badge": "✓ Real",
+            "is_trusted": true
+        }
+    ],
+    "cat": [
+        {
+            "id": "cat-bbc",
+            "title": "Cats - BBC Documentary",
+            "channel": "BBC",
+            "thumbnail": "https://i.ytimg.com/vi/sI8NsYIyQ2A/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=cats+bbc+documentary",
+            "badge": "✓ BBC",
+            "is_trusted": true
+        },
+        {
+            "id": "cat-natgeo",
+            "title": "Big Cats - National Geographic",
+            "channel": "National Geographic",
+            "thumbnail": "https://i.ytimg.com/vi/cbP2N1BQdYc/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=big+cats+national+geographic",
+            "badge": "✓ NatGeo",
+            "is_trusted": true
+        },
+        {
+            "id": "cat-dodo",
+            "title": "Cat Rescues - The Dodo",
+            "channel": "The Dodo",
+            "thumbnail": "https://i.ytimg.com/vi/Ox7HW8dG1_M/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=the+dodo+cat+rescue",
+            "badge": "✓ Dodo",
+            "is_trusted": true
+        },
+        {
+            "id": "cat-planet",
+            "title": "Cats 101 - Animal Planet",
+            "channel": "Animal Planet",
+            "thumbnail": "https://i.ytimg.com/vi/hY7m5jjJ9mM/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=cats+101+animal+planet",
+            "badge": "✓ Real",
+            "is_trusted": true
+        }
+    ],
+    "lion": [
+        {
+            "id": "lion-natgeo",
+            "title": "Lions - National Geographic",
+            "channel": "National Geographic",
+            "thumbnail": "https://i.ytimg.com/vi/aPLXWiwMo6Y/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=lions+national+geographic+documentary",
+            "badge": "✓ NatGeo",
+            "is_trusted": true
+        },
+        {
+            "id": "lion-bbc",
+            "title": "Lions - BBC Earth",
+            "channel": "BBC Earth",
+            "thumbnail": "https://i.ytimg.com/vi/TBAj8fgHxHE/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=lions+bbc+earth+documentary",
+            "badge": "✓ BBC",
+            "is_trusted": true
+        },
+        {
+            "id": "lion-discovery",
+            "title": "Lion Pride - Discovery",
+            "channel": "Discovery",
+            "thumbnail": "https://i.ytimg.com/vi/rv8kOzRZK8g/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=lion+pride+discovery+channel",
+            "badge": "✓ Discovery",
+            "is_trusted": true
+        },
+        {
+            "id": "lion-smithsonian",
+            "title": "African Lions - Smithsonian",
+            "channel": "Smithsonian",
+            "thumbnail": "https://i.ytimg.com/vi/MsJamQDzL2s/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=african+lions+smithsonian+channel",
+            "badge": "✓ Verified",
+            "is_trusted": true
+        }
+    ],
+    "elephant": [
+        {
+            "id": "elephant-natgeo",
+            "title": "Elephants - National Geographic",
+            "channel": "National Geographic",
+            "thumbnail": "https://i.ytimg.com/vi/aMJToCAqCvk/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=elephants+national+geographic+documentary",
+            "badge": "✓ NatGeo",
+            "is_trusted": true
+        },
+        {
+            "id": "elephant-bbc",
+            "title": "Baby Elephants - BBC Earth",
+            "channel": "BBC Earth",
+            "thumbnail": "https://i.ytimg.com/vi/h0gHpFd4rvo/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=baby+elephants+bbc+earth",
+            "badge": "✓ BBC",
+            "is_trusted": true
+        },
+        {
+            "id": "elephant-discovery",
+            "title": "Elephant Intelligence - Discovery",
+            "channel": "Discovery",
+            "thumbnail": "https://i.ytimg.com/vi/cPZv5CwXdGM/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=elephant+intelligence+discovery+documentary",
+            "badge": "✓ Discovery",
+            "is_trusted": true
+        }
+    ],
+    "bird": [
+        {
+            "id": "bird-bbc",
+            "title": "Birds of Paradise - BBC Earth",
+            "channel": "BBC Earth",
+            "thumbnail": "https://i.ytimg.com/vi/9RArGl2vkGI/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=birds+of+paradise+bbc+earth",
+            "badge": "✓ BBC",
+            "is_trusted": true
+        },
+        {
+            "id": "bird-natgeo",
+            "title": "Eagles - National Geographic",
+            "channel": "National Geographic",
+            "thumbnail": "https://i.ytimg.com/vi/W7QZnwKqopo/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=eagles+national+geographic+documentary",
+            "badge": "✓ NatGeo",
+            "is_trusted": true
+        },
+        {
+            "id": "bird-smithsonian",
+            "title": "Hummingbirds - Smithsonian",
+            "channel": "Smithsonian",
+            "thumbnail": "https://i.ytimg.com/vi/SvjSP2xYZm8/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=hummingbirds+smithsonian+channel",
+            "badge": "✓ Verified",
+            "is_trusted": true
+        }
+    ],
+    "fish": [
+        {
+            "id": "fish-bbc",
+            "title": "Ocean Life - BBC Blue Planet",
+            "channel": "BBC Earth",
+            "thumbnail": "https://i.ytimg.com/vi/r7NMnAuqHtA/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=blue+planet+bbc+documentary",
+            "badge": "✓ BBC",
+            "is_trusted": true
+        },
+        {
+            "id": "fish-natgeo",
+            "title": "Sharks - National Geographic",
+            "channel": "National Geographic",
+            "thumbnail": "https://i.ytimg.com/vi/lKQiVHaFvvs/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=sharks+national+geographic+documentary",
+            "badge": "✓ NatGeo",
+            "is_trusted": true
+        },
+        {
+            "id": "fish-ocean",
+            "title": "Deep Ocean Documentary",
+            "channel": "Documentary",
+            "thumbnail": "https://i.ytimg.com/vi/AELk7a9lLqw/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=deep+ocean+documentary+full",
+            "badge": "✓ Real",
+            "is_trusted": true
+        }
+    ],
+    "default": [
+        {
+            "id": "wildlife-bbc",
+            "title": "Planet Earth II - BBC",
+            "channel": "BBC Earth",
+            "thumbnail": "https://i.ytimg.com/vi/nlYlNF30bVg/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=planet+earth+2+bbc+clips",
+            "badge": "✓ BBC",
+            "is_trusted": true
+        },
+        {
+            "id": "wildlife-netflix",
+            "title": "Our Planet - Netflix",
+            "channel": "Netflix",
+            "thumbnail": "https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=our+planet+netflix+full+episode",
+            "badge": "✓ Netflix",
+            "is_trusted": true
+        },
+        {
+            "id": "wildlife-dodo",
+            "title": "Animal Rescues - The Dodo",
+            "channel": "The Dodo",
+            "thumbnail": "https://i.ytimg.com/vi/darSMsJ_8Mc/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=the+dodo+animal+rescue+compilation",
+            "badge": "✓ Dodo",
+            "is_trusted": true
+        },
+        {
+            "id": "wildlife-natgeo",
+            "title": "Wildlife - National Geographic",
+            "channel": "National Geographic",
+            "thumbnail": "https://i.ytimg.com/vi/7Kf7ItfKAD0/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=national+geographic+wildlife+documentary",
+            "badge": "✓ NatGeo",
+            "is_trusted": true
+        },
+        {
+            "id": "wildlife-nature",
+            "title": "Nature Documentary - PBS",
+            "channel": "PBS Nature",
+            "thumbnail": "https://i.ytimg.com/vi/WmVLcj-XKnM/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=pbs+nature+documentary+full",
+            "badge": "✓ PBS",
+            "is_trusted": true
+        },
+        {
+            "id": "wildlife-smithsonian",
+            "title": "Amazing Animals - Smithsonian",
+            "channel": "Smithsonian",
+            "thumbnail": "https://i.ytimg.com/vi/CbzV6i4JazU/hqdefault.jpg",
+            "url": "https://www.youtube.com/results?search_query=smithsonian+channel+animals+documentary",
+            "badge": "✓ Verified",
+            "is_trusted": true
+        }
+    ]
+}

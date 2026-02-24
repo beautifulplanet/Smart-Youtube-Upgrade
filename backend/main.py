@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 import re
 import time
 import asyncio
+import secrets
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
@@ -58,7 +59,7 @@ except ImportError as e:
 app = FastAPI(
     title="YouTube Safety Inspector API",
     description="Analyzes YouTube videos for potentially dangerous or misleading content",
-    version="2.1.0"
+    version="3.0.1"
 )
 
 # Security headers middleware
@@ -68,9 +69,37 @@ async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
+    # X-XSS-Protection removed: deprecated in modern browsers, can introduce vulnerabilities
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
+
+# API Key Authentication middleware (optional — set API_SECRET_KEY in .env to enable)
+_api_secret = os.environ.get("API_SECRET_KEY", "").strip()
+# Endpoints that don't require authentication
+_PUBLIC_ENDPOINTS = {"/health", "/docs", "/openapi.json", "/redoc"}
+
+if _api_secret:
+    logger.info("API authentication: ENABLED (API_SECRET_KEY set)")
+else:
+    logger.warning("API authentication: DISABLED. Set API_SECRET_KEY in .env to require auth.")
+
+@app.middleware("http")
+async def api_key_middleware(request: Request, call_next):
+    """Require X-API-Key header on protected endpoints when API_SECRET_KEY is configured."""
+    if not _api_secret:
+        return await call_next(request)
+
+    path = request.url.path.rstrip("/")
+    if path in _PUBLIC_ENDPOINTS or request.method == "OPTIONS":
+        return await call_next(request)
+
+    provided_key = request.headers.get("X-API-Key", "")
+    if not secrets.compare_digest(provided_key, _api_secret):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+
+    return await call_next(request)
 
 # Per-IP rate limiting middleware
 _rate_limit_store: dict[str, list[float]] = {}
@@ -107,10 +136,15 @@ async def rate_limit_middleware(request: Request, call_next):
     timestamps.append(now)
     _rate_limit_store[key] = timestamps
 
-    # Periodic cleanup of old entries (every ~100 requests)
-    if len(_rate_limit_store) > 1000:
+    # Periodic cleanup of old entries (every ~200 requests)
+    if len(_rate_limit_store) > 200:
         cutoff = now - RATE_LIMIT_WINDOW
-        _rate_limit_store.clear()
+        stale_keys = [
+            k for k, v in _rate_limit_store.items()
+            if not v or v[-1] < cutoff
+        ]
+        for k in stale_keys:
+            del _rate_limit_store[k]
 
     return await call_next(request)
 
@@ -119,14 +153,14 @@ async def rate_limit_middleware(request: Request, call_next):
 _allowed_ext_ids = os.environ.get("ALLOWED_EXTENSION_IDS", "").strip()
 
 if _allowed_ext_ids:
-    # Production: Only allow specific extension IDs
+    # Production: Only allow specific extension IDs + restricted localhost
     _ext_id_list = [eid.strip() for eid in _allowed_ext_ids.split(",") if eid.strip()]
     _ext_pattern = "|".join(re.escape(eid) for eid in _ext_id_list)
-    ALLOWED_ORIGIN_REGEX = rf"^(http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?|chrome-extension://({_ext_pattern}))$"
+    ALLOWED_ORIGIN_REGEX = rf"^(http://localhost:8000|http://127\.0\.0\.1:8000|chrome-extension://({_ext_pattern}))$"
     logger.info(f"CORS: Locked to {len(_ext_id_list)} extension ID(s)")
 else:
-    # Dev mode: Allow any extension ID but log warning
-    ALLOWED_ORIGIN_REGEX = r"^(http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?|chrome-extension://[a-z]{32})$"
+    # Dev mode: Allow any extension ID + localhost:8000 only (not arbitrary ports)
+    ALLOWED_ORIGIN_REGEX = r"^(http://localhost:8000|http://127\.0\.0\.1:8000|chrome-extension://[a-z]{32})$"
     logger.warning("CORS: No ALLOWED_EXTENSION_IDS set - allowing any extension (dev mode). Set ALLOWED_EXTENSION_IDS in .env for production.")
 
 app.add_middleware(
@@ -134,15 +168,25 @@ app.add_middleware(
     allow_origin_regex=ALLOWED_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "X-API-Key"],
 )
 
 # Initialize components
 # Set YOUTUBE_API_KEY environment variable for comment analysis
 youtube_api_key = os.environ.get("YOUTUBE_API_KEY")
 openai_api_key = os.environ.get("OPENAI_API_KEY")
+anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+
+# AI Context Reviewer — verifies metadata signature matches (debunking vs promoting)
+from ai_reviewer import AIContextReviewer
+ai_reviewer = AIContextReviewer(
+    openai_api_key=openai_api_key,
+    anthropic_api_key=anthropic_api_key,
+    provider=os.environ.get("AI_PROVIDER", "auto"),
+)
+
 safety_db = SafetyDatabase()
-analyzer = SafetyAnalyzer(safety_db, youtube_api_key=youtube_api_key)
+analyzer = SafetyAnalyzer(safety_db, youtube_api_key=youtube_api_key, ai_reviewer=ai_reviewer)
 alternatives_finder = SafeAlternativesFinder(api_key=youtube_api_key)
 
 # Vision analyzer is optional
@@ -156,15 +200,23 @@ _features = {
     "comment_analysis": bool(youtube_api_key),
     "vision_analysis": VISION_AVAILABLE and bool(openai_api_key),
     "alternatives_search": bool(youtube_api_key),
+    "ai_context_review": ai_reviewer.is_ai_enabled,
+    "ai_provider": ai_reviewer.provider,
+    "ai_model": ai_reviewer.model,
 }
 logger.info("=== Feature Availability ===")
 for feature, enabled in _features.items():
-    status = "ENABLED" if enabled else "DISABLED"
-    logger.info(f"  {feature}: {status}")
+    if isinstance(enabled, str):
+        logger.info(f"  {feature}: {enabled}")
+    else:
+        status = "ENABLED" if enabled else "DISABLED"
+        logger.info(f"  {feature}: {status}")
 if not youtube_api_key:
     logger.warning("YOUTUBE_API_KEY not set. Comment analysis and alternatives search disabled. Set env var to enable.")
 if not (VISION_AVAILABLE and openai_api_key):
     logger.warning("Vision analysis disabled. Requires OPENAI_API_KEY + yt-dlp + ffmpeg.")
+if not ai_reviewer.is_ai_enabled:
+    logger.warning("AI context review: using HEURISTIC fallback. Set OPENAI_API_KEY or ANTHROPIC_API_KEY for near-perfect accuracy.")
 
 # API Quota Tracking (YouTube daily limit: 10,000)
 API_QUOTA_LIMIT = 10000
@@ -218,10 +270,16 @@ class AnalyzeRequest(BaseModel):
             raise ValueError('Invalid video ID format (must be 11 characters, alphanumeric with hyphens/underscores)')
         return v
     
+class EvidenceItem(BaseModel):
+    type: str  # title, description, channel, hashtag, co_occurrence, other
+    label: str
+    value: str
+
 class Warning(BaseModel):
     category: str
     severity: str  # high, medium, low
     message: str
+    evidence: Optional[list[EvidenceItem]] = None
     timestamp: Optional[str] = None
     
 class CategoryResult(BaseModel):
@@ -259,6 +317,12 @@ class AnalysisResponse(BaseModel):
     categories: dict[str, CategoryResult]
     summary: str
     transcript_available: bool
+    ai_generated: bool = False
+    ai_confidence: float = 0.0
+    ai_reasons: list[str] = []
+    alternatives: list[AlternativeVideo] = []
+    detected_animal: str = ""
+    is_debunking: bool = False
     vision_analysis: VisionResult = None
     safe_alternatives: AlternativesResult = None
 
@@ -268,13 +332,8 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy", 
-        "version": "2.1.0",
-        "api_quota": {
-            "used_today": api_quota_tracker["count"],
-            "daily_limit": 10000,
-            "remaining": 10000 - api_quota_tracker["count"],
-            "date": api_quota_tracker["date"]
-        }
+        "version": "3.0.1"
+        # SECURITY: API quota details removed from public endpoint (finding #17)
     }
 
 
@@ -342,7 +401,7 @@ async def analyze_video(request: AnalyzeRequest):
                     'safety_issues': False,
                     'concerns': [],
                     'frames_analyzed': 0,
-                    'message': f'Vision analysis unavailable: {str(ve)}'
+                    'message': 'Vision analysis temporarily unavailable'
                 }
         else:
             results['vision_analysis'] = {
@@ -362,24 +421,41 @@ async def analyze_video(request: AnalyzeRequest):
             if data.get('flagged')
         ]
         
+        # Check for debunking content: metadata signatures provide targeted debunk searches
+        debunk_searches = results.get('debunk_searches', [])
+        has_debunk_content = bool(debunk_searches)
+        
         if is_dangerous or has_ai_content or flagged_categories:
             try:
                 # Get video title for context
                 video_title = results.get('video_title', '') or results.get('summary', '')[:100]
                 
-                alt_results = await alternatives_finder.find_safe_alternatives(
-                    danger_categories=flagged_categories,
-                    original_title=video_title,
-                    is_ai_content=has_ai_content,
-                    max_results=10  # More results for the grid
-                )
+                if has_debunk_content:
+                    # Use targeted debunk search queries from matched signatures
+                    alt_results = await alternatives_finder.search_debunking_videos(
+                        debunk_queries=debunk_searches,
+                        max_results=8
+                    )
+                else:
+                    # Use category-based safe alternatives (original behavior)
+                    # Also pass category IDs for mapping lookup
+                    matched_cat_ids = results.get('matched_metadata_categories', [])
+                    combined_categories = flagged_categories + matched_cat_ids
+                    
+                    alt_results = await alternatives_finder.find_safe_alternatives(
+                        danger_categories=combined_categories,
+                        original_title=video_title,
+                        is_ai_content=has_ai_content,
+                        max_results=10
+                    )
                 
                 results['safe_alternatives'] = {
                     'enabled': alt_results.get('enabled', False),
                     'alternatives': alt_results.get('alternatives', []),
                     'message': alt_results.get('message', ''),
                     'category_type': alt_results.get('category_type', ''),
-                    'detected_animal': alt_results.get('detected_animal', '')
+                    'detected_animal': alt_results.get('detected_animal') or '',
+                    'is_debunking': has_debunk_content
                 }
                 
             except Exception as ae:
@@ -387,7 +463,7 @@ async def analyze_video(request: AnalyzeRequest):
                 results['safe_alternatives'] = {
                     'enabled': False,
                     'alternatives': [],
-                    'message': f'Could not find alternatives: {str(ae)}',
+                    'message': 'Could not find alternatives at this time',
                     'category_type': ''
                 }
         else:
@@ -404,6 +480,13 @@ async def analyze_video(request: AnalyzeRequest):
             quota_cost += 100  # Search API call
         current_usage = await log_api_call(quota_cost)
         results['api_quota_used'] = current_usage
+        
+        # Flatten safe_alternatives into top-level fields for frontend compatibility
+        sa = results.get('safe_alternatives') or {}
+        results['alternatives'] = sa.get('alternatives', [])
+        results['detected_animal'] = sa.get('detected_animal') or ''
+        # is_debunking: True if AI review determined content is debunking/educational
+        results['is_debunking'] = results.get('is_debunking', False) or sa.get('is_debunking', False)
         
         return results
     except Exception as e:
@@ -498,6 +581,8 @@ async def get_real_alternatives(request: AIContentRequest):
 @app.get("/report/{video_id}", response_class=HTMLResponse)
 async def get_full_report(video_id: str):
     """Generate a full HTML report for a video analysis"""
+    # Security: Validate video ID before processing
+    video_id = validate_video_id(video_id)
     try:
         results = await analyzer.analyze(video_id)
         return generate_report_html(results)
@@ -508,8 +593,17 @@ async def get_full_report(video_id: str):
 
 @app.get("/signatures")
 async def get_signatures():
-    """Get all safety signatures (danger patterns) from database"""
-    return safety_db.get_all_signatures()
+    """Get safety signature metadata (trigger patterns stripped to prevent evasion)"""
+    safe_sigs = []
+    for sig in safety_db.get_all_signatures():
+        safe_sigs.append({
+            "id": sig.get("id"),
+            "category": sig.get("category"),
+            "severity": sig.get("severity"),
+            "warning_message": sig.get("warning_message"),
+            "trigger_count": len(sig.get("triggers", [])),
+        })
+    return safe_sigs
 
 
 @app.get("/categories")
@@ -688,7 +782,7 @@ def generate_report_html(results: dict) -> str:
         <div class="container">
             <header>
                 <h1>🛡️ Safety Analysis Report</h1>
-                <p class="video-id">Video ID: {results['video_id']}</p>
+                <p class="video-id">Video ID: {video_id_safe}</p>
             </header>
             
             <div class="score-section">
@@ -712,7 +806,7 @@ def generate_report_html(results: dict) -> str:
             
             <div class="section">
                 <h2>📝 Summary</h2>
-                <p class="summary">{results.get('summary', 'Analysis complete.')}</p>
+                <p class="summary">{summary_safe}</p>
             </div>
         </div>
     </body>
@@ -722,6 +816,7 @@ def generate_report_html(results: dict) -> str:
 
 if __name__ == "__main__":
     logger.info("YouTube Safety Inspector API")
-    logger.info("Starting server at http://localhost:8000")
-    logger.info("API docs: http://localhost:8000/docs")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    logger.info("Starting server at http://127.0.0.1:8000")
+    logger.info("API docs: http://127.0.0.1:8000/docs")
+    # SECURITY: bind to localhost only — never 0.0.0.0 without authentication
+    uvicorn.run(app, host="127.0.0.1", port=8000)

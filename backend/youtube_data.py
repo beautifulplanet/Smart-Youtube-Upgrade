@@ -221,17 +221,19 @@ COMMENT_WARNING_PATTERNS = [
 AI_CONTENT_PATTERNS = [
     (re.compile(p, re.IGNORECASE), s, d) for p, s, d in [
     # Direct AI mentions (most common comment types)
-    (r"^ai$", "high", "AI content confirmed by comment"),  # Standalone "AI" or "Ai"
-    (r"^ai[\.\!\?]?$", "high", "AI content confirmed by comment"),  # "AI." or "AI!"
-    (r"^this is ai", "high", "AI content confirmed"),
+    # NOTE: Require standalone "ai" or "Ai" as ENTIRE comment (max ~10 chars) to avoid
+    # false positives from remarks like "I got RickRolled by my AI assistant"
+    (r"^(?:this is )?ai[\.\!\?]?$", "high", "AI content confirmed by comment"),
+    (r"^fake[\.\!\?]?$", "high", "Fake content identified"),
+    (r"^this is ai\b", "high", "AI content confirmed"),
     (r"^fake\b", "high", "Fake content identified"),
     (r"\bai (slop|generated|made|content|video|image)\b", "high", "AI-generated content detected"),
     (r"this is (ai|fake|cgi|generated|not real)\b", "high", "Users identifying AI/fake content"),
-    (r"(clearly |obviously )?(ai|fake|cgi|generated)\b", "medium", "Users suspect AI content"),
+    (r"(clearly |obviously )(ai|fake|cgi|generated)\b", "medium", "Users suspect AI content"),
     (r"made (with|by|using) ai\b", "high", "AI-generated content"),
     (r"(deepfake|deep fake)\b", "critical", "Deepfake content detected"),
     (r"(fake|ai) (video|image|picture|story)\b", "high", "Fake media identified"),
-    (r"\bnot real\b|\bdidn'?t happen\b|\bnever happened\b", "medium", "Content authenticity questioned"),
+    (r"\bnot real\b.*(?:ai|fake|cgi|generated)\b|\b(?:ai|fake|cgi|generated)\b.*\bnot real\b", "medium", "Content authenticity questioned"),
     (r"(rage ?bait|click ?bait|engagement bait)\b", "medium", "Bait content identified"),
     (r"(midjourney|dall-?e|stable diffusion|sora|runway|pika|kling)\b", "high", "AI tool mentioned"),
     (r"(bot|spam) comment\b", "low", "Bot activity suspected"),

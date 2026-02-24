@@ -1,0 +1,66 @@
+[
+    {
+        "id": "sora-tutorial",
+        "title": "How To Use OpenAI Sora - Tutorials",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/HBxn56l9WcU/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=how+to+use+openai+sora+tutorial+2024",
+        "badge": "🎓 Sora"
+    },
+    {
+        "id": "runway-tutorial",
+        "title": "Runway Gen-3 Tutorial - AI Video",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/NXpdyAWLDas/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=runway+gen+3+alpha+tutorial",
+        "badge": "🎓 Runway"
+    },
+    {
+        "id": "pika-tutorial",
+        "title": "Pika Labs AI Video Tutorial",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/hHvSNtYaYlY/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=pika+labs+ai+video+tutorial",
+        "badge": "🎓 Pika"
+    },
+    {
+        "id": "kling-tutorial",
+        "title": "Kling AI Tutorial - Create Videos",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/HK6y8DAPN_0/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=kling+ai+video+tutorial",
+        "badge": "🎓 Kling"
+    },
+    {
+        "id": "luma-tutorial",
+        "title": "Luma Dream Machine Tutorial",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/6bk2E-XCLSY/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=luma+dream+machine+ai+tutorial",
+        "badge": "🎓 Luma"
+    },
+    {
+        "id": "sd-video",
+        "title": "Stable Diffusion Video - Full Guide",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/jDi2DLqkocU/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=stable+diffusion+video+animation+tutorial",
+        "badge": "🎓 Tutorial"
+    },
+    {
+        "id": "ai-tools",
+        "title": "Best AI Video Tools 2024",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/xqxB4VPoyK0/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=best+ai+video+generator+tools+2024",
+        "badge": "🎓 Tools"
+    },
+    {
+        "id": "ai-basics",
+        "title": "How AI Video Generation Works",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/aircAruvnKk/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=how+ai+video+generation+works+explained",
+        "badge": "🎓 Learn"
+    }
+]

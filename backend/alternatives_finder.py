@@ -206,6 +206,54 @@ class SafeAlternativesFinder:
             "message": "🦁 Watch REAL animal videos instead!"
         }
     
+    async def search_debunking_videos(self, debunk_queries: list[str], max_results: int = 8) -> dict:
+        """
+        Search for debunking/educational videos that counter conspiracy or manipulation content.
+        
+        Args:
+            debunk_queries: Targeted search queries from matched signature files
+            max_results: Maximum number of videos to return
+            
+        Returns:
+            dict with debunking video alternatives
+        """
+        if not self.enabled:
+            return {
+                "enabled": False,
+                "alternatives": [],
+                "message": "YouTube API key not configured",
+                "category_type": "debunking"
+            }
+        
+        alternatives = []
+        seen_ids = set()
+        
+        # Search using the targeted debunk queries from the signature files
+        for query in debunk_queries[:4]:  # Limit to 4 searches to conserve API quota
+            try:
+                results = await self._search_youtube(query, max_results=3)
+                for video in results:
+                    if video['id'] not in seen_ids:
+                        seen_ids.add(video['id'])
+                        video['badge'] = '🔬 Debunking'
+                        alternatives.append(video)
+                        
+                        if len(alternatives) >= max_results:
+                            break
+            except Exception as e:
+                logger.error(f"Debunk search error for '{query}': {e}")
+                continue
+            
+            if len(alternatives) >= max_results:
+                break
+        
+        return {
+            "enabled": True,
+            "alternatives": alternatives[:max_results],
+            "category_type": "debunking",
+            "message": "🔬 Watch videos that debunk this content"
+        }
+    
     
     async def find_ai_tutorials(self, detected_subject: str = None, prefer_shorts: bool = False, max_results: int = 8) -> dict:
         """

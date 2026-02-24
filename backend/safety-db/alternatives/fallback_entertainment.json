@@ -1,0 +1,50 @@
+[
+    {
+        "id": "sora-showcase",
+        "title": "OpenAI Sora - Best Examples",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/HBxn56l9WcU/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=openai+sora+best+examples+showcase",
+        "badge": "🤖 Sora"
+    },
+    {
+        "id": "ai-videos-2024",
+        "title": "Best AI Generated Videos 2024",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/4wtk26eFCJM/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=best+ai+generated+videos+2024",
+        "badge": "🤖 AI"
+    },
+    {
+        "id": "runway-showcase",
+        "title": "Runway AI - Amazing Creations",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/IRDgJ0yRbeY/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=runway+ai+video+showcase+amazing",
+        "badge": "🤖 Runway"
+    },
+    {
+        "id": "ai-art-video",
+        "title": "AI Art to Video - Incredible Results",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/3CRkNJ2Jk2Q/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=ai+art+to+video+midjourney+animation",
+        "badge": "🎨 Art"
+    },
+    {
+        "id": "ai-short-films",
+        "title": "AI Generated Short Films",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/qArnCdUGkOE/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=ai+generated+short+film+2024",
+        "badge": "🎬 Films"
+    },
+    {
+        "id": "ai-music-video",
+        "title": "AI Music Videos - Creative",
+        "channel": "YouTube Search",
+        "thumbnail": "https://i.ytimg.com/vi/aircAruvnKk/hqdefault.jpg",
+        "url": "https://www.youtube.com/results?search_query=ai+generated+music+video+2024",
+        "badge": "🎵 Music"
+    }
+]
