@@ -25,7 +25,7 @@ class TestHealthEndpoint:
         data = response.json()
         assert data["status"] == "healthy"
         assert "version" in data
-        assert "api_quota" in data
+        # Note: api_quota intentionally removed from public endpoint (security finding #17)
 
     @pytest.mark.asyncio
     async def test_health_has_security_headers(self, client):
