@@ -85,8 +85,11 @@ function observeUrlChanges() {
       debouncedUrlChange(location.href);
     });
 
-    // URL polling fallback — catches SPA navigations even if yt-navigate-finish doesn't fire
+  // URL polling fallback — catches SPA navigations even if yt-navigate-finish doesn't fire
     setInterval(() => {
+      try {
+        if (!(chrome.runtime && chrome.runtime.id)) return; // context dead
+      } catch { return; }
       if (location.href !== lastUrl) {
         console.log('🛡️ URL change detected by polling:', location.href);
         debouncedUrlChange(location.href);
@@ -143,6 +146,9 @@ function onUrlChange(url) {
 // --- Message Listeners ---
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  try {
+    if (!(chrome.runtime && chrome.runtime.id)) return; // context dead
+  } catch { return; }
   if (request.type === 'CHECK_VIDEO') {
     const videoId = getVideoId();
     if (videoId) {
@@ -195,6 +201,9 @@ let _adWasPlaying = false;
 function startAdCheckInterval() {
   if (_adCheckInterval) clearInterval(_adCheckInterval);
   _adCheckInterval = setInterval(() => {
+    try {
+      if (!(chrome.runtime && chrome.runtime.id)) { clearInterval(_adCheckInterval); return; }
+    } catch { clearInterval(_adCheckInterval); return; }
     const adNow = isAdPlaying();
     
     if (adNow && !_adWasPlaying) {

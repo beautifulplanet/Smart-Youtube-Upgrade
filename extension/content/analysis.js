@@ -8,6 +8,18 @@
 let currentVideoId = null;
 let lastAnalysisTime = 0;
 
+/**
+ * Check if the Chrome extension context is still valid.
+ * Returns false when the content script has been orphaned by navigation/reload.
+ */
+function isExtensionContextValid() {
+    try {
+        return !!(chrome.runtime && chrome.runtime.id);
+    } catch {
+        return false;
+    }
+}
+
 // Default settings (must match popup.js defaults)
 const DEFAULT_SETTINGS = {
     enableAIDetection: true,
@@ -23,6 +35,7 @@ let _cachedSettings = null;
 
 // Listen for settings changes from popup
 chrome.storage.onChanged.addListener((changes, area) => {
+    if (!isExtensionContextValid()) return;
     if (area === 'sync' && changes.inspectorSettings) {
         _cachedSettings = { ...DEFAULT_SETTINGS, ...changes.inspectorSettings.newValue };
     }
@@ -35,6 +48,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
  */
 async function getSettings() {
     if (_cachedSettings) return _cachedSettings;
+    if (!isExtensionContextValid()) return DEFAULT_SETTINGS;
     try {
         const result = await chrome.storage.sync.get('inspectorSettings');
         _cachedSettings = { ...DEFAULT_SETTINGS, ...result.inspectorSettings };
@@ -53,6 +67,12 @@ async function getSettings() {
 async function checkVideo(videoId, force = false) {
     try {
         if (!videoId) return;
+
+        // Guard: bail if extension context was destroyed (SPA navigation orphaned this script)
+        if (!isExtensionContextValid()) {
+            console.log('🛡️ Extension context invalid — skipping analysis');
+            return;
+        }
 
         // --- AD-FIRST GATE ---
         // If a pre-roll ad is playing, show "Ad Playing" and defer analysis.
@@ -96,7 +116,13 @@ async function checkVideo(videoId, force = false) {
         if (typeof hideAllOverlays === 'function') hideAllOverlays();
 
         // Scrape metadata using utils
-        const title = typeof getVideoTitle === 'function' ? getVideoTitle() : '';
+        // For Shorts, YouTube's DOM may not have updated yet — wait a beat
+        let title = typeof getVideoTitle === 'function' ? getVideoTitle() : '';
+        if (isShorts && (!title || title === document.title.replace(' - YouTube', '').trim())) {
+            // DOM hasn't hydrated the new Short's title yet — wait and retry
+            await new Promise(r => setTimeout(r, 800));
+            title = typeof getVideoTitle === 'function' ? getVideoTitle() : '';
+        }
         const channel = typeof getChannelName === 'function' ? getChannelName() : '';
         const description = typeof getVideoDescription === 'function' ? getVideoDescription() : '';
 
@@ -106,6 +132,12 @@ async function checkVideo(videoId, force = false) {
         // Show analyzing state in sidebar
         if (typeof setSidebarMode === 'function') {
             setSidebarMode('analyzing');
+        }
+
+        // Guard again before async Chrome API call (context may have died during await)
+        if (!isExtensionContextValid()) {
+            console.log('🛡️ Extension context lost before sendMessage — aborting');
+            return;
         }
 
         chrome.runtime.sendMessage({
@@ -288,6 +320,7 @@ async function loadTabContent(tabName, forceReload = false) {
 
     try {
         // Call backend API via background script to use centralized URL
+        if (!isExtensionContextValid()) return;
         const data = await new Promise((resolve, reject) => {
             chrome.runtime.sendMessage({
                 type: 'FETCH_API',
