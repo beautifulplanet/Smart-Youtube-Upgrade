@@ -214,11 +214,18 @@
   color: var(--text-muted);
 }
 
-.ysi-wiki-link {
+.ysi-explore-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ysi-explore-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 8px;
   padding: 6px 14px;
   font-size: 12px;
   font-weight: 500;
@@ -231,10 +238,15 @@
   cursor: pointer;
 }
 
-.ysi-wiki-link:hover {
+.ysi-explore-btn:hover {
   background: var(--accent);
   color: #fff;
   text-decoration: none;
+}
+
+.ysi-lens-btn:hover {
+  background: #4285f4;
+  border-color: #4285f4;
 }
 
 /* ═══════════════════════════════════════════════

@@ -139,9 +139,14 @@ function buildSidebarHTML() {
         <div class="ysi-chill-icon">✅</div>
         <div class="ysi-chill-text">Looks Good</div>
         <div class="ysi-chill-sub">No safety issues detected</div>
-        <a class="ysi-wiki-link" id="ysi-wiki-link" href="#" target="_blank" rel="noopener noreferrer">
-          📖 Learn more on Wikipedia
-        </a>
+        <div class="ysi-explore-links">
+          <a class="ysi-explore-btn" id="ysi-wiki-link" href="#" target="_blank" rel="noopener noreferrer">
+            📖 Wikipedia
+          </a>
+          <a class="ysi-explore-btn ysi-lens-btn" id="ysi-lens-link" href="#" target="_blank" rel="noopener noreferrer">
+            🔍 Google Lens
+          </a>
+        </div>
       </div>
       <div class="ysi-section-label">
         <span>Related Videos</span>
@@ -303,6 +308,7 @@ function updateSidebarWithResults(results, settings = {}) {
   } else {
     setSidebarMode('chill');
     populateWikiLink();
+    populateLensLink();
   }
 
   loadThumbnailGrid(results);
@@ -345,6 +351,33 @@ function populateWikiLink() {
   const wikiUrl = `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(cleaned)}`;
   link.href = wikiUrl;
   link.title = `Search Wikipedia for "${cleaned}"`;
+  link.style.display = '';
+}
+
+/**
+ * Populate the Google Lens link in the chill state.
+ * Uses the video thumbnail URL so Lens can identify objects, people,
+ * products, landmarks, and text visible in the video.
+ */
+function populateLensLink() {
+  const shadow = SIDEBAR_STATE.shadowRoot;
+  if (!shadow) return;
+
+  const link = shadow.getElementById('ysi-lens-link');
+  if (!link) return;
+
+  const videoId = typeof getVideoId === 'function' ? getVideoId() : null;
+  if (!videoId) {
+    link.style.display = 'none';
+    return;
+  }
+
+  // YouTube serves predictable public thumbnail URLs
+  const thumbUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  const lensUrl = `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(thumbUrl)}`;
+
+  link.href = lensUrl;
+  link.title = 'Identify objects, people & products with Google Lens';
   link.style.display = '';
 }
 
