@@ -19,7 +19,10 @@ COPY --from=builder /install /usr/local
 
 # Copy application code
 COPY backend/*.py ./
+
+# Copy safety database files (signatures + categories from root, alternatives from backend)
 COPY safety-db/ ./safety-db/
+COPY backend/safety-db/ ./safety-db/
 
 # Create non-root user
 RUN useradd --create-home appuser

@@ -26,8 +26,13 @@ class SafetyDatabase:
     def __init__(self, db_path: str = None):
         """Initialize and load signatures from db_path (defaults to safety-db/)."""
         if db_path is None:
-            # Default to safety-db folder relative to backend
-            db_path = Path(__file__).parent.parent / "safety-db"
+            # Try local dev path first (project-root/safety-db), then Docker path (./safety-db)
+            dev_path = Path(__file__).parent.parent / "safety-db"
+            docker_path = Path(__file__).parent / "safety-db"
+            if dev_path.exists():
+                db_path = dev_path
+            else:
+                db_path = docker_path
         
         self.db_path = Path(db_path)
         self.signatures = []
