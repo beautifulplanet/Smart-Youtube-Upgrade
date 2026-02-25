@@ -140,6 +140,9 @@ function buildSidebarHTML() {
         <div class="ysi-chill-text">Looks Good</div>
         <div class="ysi-chill-sub">No safety issues detected</div>
         <div class="ysi-explore-links">
+          <a class="ysi-explore-btn ysi-gemini-btn" id="ysi-gemini-link" href="#" target="_blank" rel="noopener noreferrer">
+            ✨ Ask Gemini
+          </a>
           <a class="ysi-explore-btn" id="ysi-wiki-link" href="#" target="_blank" rel="noopener noreferrer">
             📖 Wikipedia
           </a>
@@ -307,6 +310,7 @@ function updateSidebarWithResults(results, settings = {}) {
     }
   } else {
     setSidebarMode('chill');
+    populateGeminiLink();
     populateWikiLink();
     populateLensLink();
   }
@@ -378,6 +382,33 @@ function populateLensLink() {
 
   link.href = lensUrl;
   link.title = 'Identify objects, people & products with Google Lens';
+  link.style.display = '';
+}
+
+/**
+ * Populate the Gemini AI link in the chill state.
+ * Opens Google Gemini with a prompt pre-filled with the video URL,
+ * so users can ask specific questions about the video content.
+ */
+function populateGeminiLink() {
+  const shadow = SIDEBAR_STATE.shadowRoot;
+  if (!shadow) return;
+
+  const link = shadow.getElementById('ysi-gemini-link');
+  if (!link) return;
+
+  const videoId = typeof getVideoId === 'function' ? getVideoId() : null;
+  if (!videoId) {
+    link.style.display = 'none';
+    return;
+  }
+
+  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const prompt = `Tell me about this YouTube video: ${videoUrl}`;
+  const geminiUrl = `https://gemini.google.com/app?q=${encodeURIComponent(prompt)}`;
+
+  link.href = geminiUrl;
+  link.title = 'Ask Gemini AI about this video — identify songs, products, people & more';
   link.style.display = '';
 }
 
